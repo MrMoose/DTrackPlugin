@@ -128,6 +128,17 @@ void FDTrackPlugin::DTrackTick(float n_delta_time) {
 		m_dtrack->receive();
 	}
 
+	if (m_dtrack2) {
+		unsigned int current_frame = m_dtrack->getMessageFrameNr();
+		if (m_last_seen_frame == current_frame) {
+			// no new data came in. I can safely bail
+			return;
+		} else {
+			m_last_seen_frame = current_frame;
+		}
+	}
+
+	// iterate all registered components and call the interface methods upon them
 	for (TWeakObjectPtr<UDTrackComponent> c : m_clients) {
 
 		// components might get killed and created along the way.
@@ -155,6 +166,22 @@ void FDTrackPlugin::DTrackTick(float n_delta_time) {
 				component->body_tracking(body->id, translation, rotation);
 			}
 		}
+
+		// now flysticks
+		const DTrack_FlyStick_Type_d *flystick = nullptr;
+		for (int i = 0; i < m_dtrack->getNumFlyStick(); i++) {
+			flystick = m_dtrack->getFlyStick(i);
+			checkf(flystick, TEXT("DTrack API error, flystick address null"));
+
+			if (flystick->quality > 0) {
+				// Quality below zero means the body is not visible to the system right now. I won't call the interface
+
+				FVector translation = from_dtrack_location(flystick->loc);
+				FRotator rotation = from_dtrack_rotation(flystick->rot);
+
+				component->flystick_tracking(flystick->id, translation, rotation);
+			}
+		}
 	}
 }
 
@@ -169,8 +196,9 @@ void FDTrackPlugin::start_up(UDTrackComponent *n_client) {
 		// Also it looks like it cannot resolve hostnames and must be given an IP.
 
 		// @todo clarify this with ART. DTrack Recorder only supports DTrack protocol and there's no way of knowing for sure.
-		if (n_client->m_dtrack_2) {
+		if (n_client->m_dtrack_2) {			
 			m_dtrack.reset(new DTrackSDK(to_string(n_client->m_dtrack_server_ip), n_client->m_dtrack_server_port));
+			m_dtrack2 = true;
 		} else {
 			m_dtrack.reset(new DTrackSDK(to_string(n_client->m_dtrack_server_ip), 50105, n_client->m_dtrack_server_port));
 		}

@@ -59,6 +59,14 @@ class FDTrackPlugin : public IDTrackPlugin {
 		/// this is the DTrack SDK main object. I'll have one one owned here as Í do not know if they can coexist
 		std::unique_ptr< DTrackSDK > m_dtrack;
 		bool                         m_tracking_active = false;
+		bool                         m_dtrack2 = false;
+
+		/**
+		 * each frame will only cause the interface to be triggered once.
+		 * This only seems to work for DTrack2 though. DTrack gives null every frame
+		 * So it's only considered if m_dtrack2
+		 */
+		unsigned int                 m_last_seen_frame = 0;
 
 		/// each DTrack component registers itself here and gets called every tick
 		TArray< TWeakObjectPtr<UDTrackComponent> > m_clients;

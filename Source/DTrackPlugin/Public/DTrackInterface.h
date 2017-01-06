@@ -36,7 +36,8 @@ class UDTrackInterface : public UInterface {
 
 /** @brief Blueprint interface for ART tracked objects
 	
-	Implement this to have your stuff tracked.
+	Implement this interface in any Blueprint or C++ Actor to receive tracking information
+	from the ART tracking system.
 
 	@todo: Document me properly
 
@@ -46,14 +47,23 @@ class DTRACKPLUGIN_API IDTrackInterface {
 	GENERATED_IINTERFACE_BODY()
 
 	public:
+		/// never called yet
 		UFUNCTION(BlueprintImplementableEvent, Category = DTrackEvents)
 		void DeviceDisabled();
 
 		/**
-		 * It has to be BlueprintNativeEvent or otherwise it can not be implemented by a C++ actor.
+		 * This is called for each new set of body tracking data received unless 
+		 * frame rate is lower than tracking data frequency.
 		 */
 		UFUNCTION(BlueprintNativeEvent, Category = DTrackEvents)
 		void OnBodyData(const int32 BodyID, const FVector &Position, const FRotator &Rotation);
+
+		/**
+		 * This is called for each new set of flystick tracking data.
+		 * It is only called for flystick location and rotation. Buttons come separately.
+		 */
+		UFUNCTION(BlueprintNativeEvent, Category = DTrackEvents)
+		void OnFlystickData(const int32 FlystickID, const FVector &Position, const FRotator &Rotation);
 
 		virtual FString ToString();
 };

@@ -114,11 +114,19 @@ bool UDTrackComponent::IsRemoteEnabled() {
 }
 
 
-
 void UDTrackComponent::body_tracking(const int32 n_body_id, const FVector &n_translation, const FRotator &n_rotation) {
 
 	if (GetOwner()->GetClass()->ImplementsInterface(UDTrackInterface::StaticClass())) {
 		IDTrackInterface::Execute_OnBodyData(GetOwner(), n_body_id, n_translation, n_rotation);
+	} else {
+		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Yellow, "Owning Actor does not implement DTrack interface");
+	}
+}
+
+void UDTrackComponent::flystick_tracking(const int32 n_flystick_id, const FVector &n_translation, const FRotator &n_rotation) {
+	
+	if (GetOwner()->GetClass()->ImplementsInterface(UDTrackInterface::StaticClass())) {
+		IDTrackInterface::Execute_OnFlystickData(GetOwner(), n_flystick_id, n_translation, n_rotation);
 	} else {
 		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Yellow, "Owning Actor does not implement DTrack interface");
 	}
