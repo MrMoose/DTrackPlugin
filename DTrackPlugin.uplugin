@@ -1,0 +1,22 @@
+{
+    "FileVersion" : 1,
+	
+	"FriendlyName" : "DTrack Plugin",
+	"Version" : 1,
+	"VersionName" : "0.2.0",
+	"CreatedBy" : "Advanced Realtime Tracking GmbH",
+	"CreatedByURL" : "http://www.ar-tracking.com/home/",
+	"EngineVersion" : "4.14+",
+	"Description" : "Plugin for the ART DTrack tracking system.",
+	"Category" : "Input.Controller",
+	
+    "Modules" :
+	[
+		{
+			"Name" : "DTrackPlugin",
+			"Type" : "Runtime",
+			"WhitelistPlatforms" : [ "Win64" ]
+		}
+	],
+	"CanContainContent" : false
+}
