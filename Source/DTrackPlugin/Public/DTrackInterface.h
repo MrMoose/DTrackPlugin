@@ -65,5 +65,13 @@ class DTRACKPLUGIN_API IDTrackInterface {
 		UFUNCTION(BlueprintNativeEvent, Category = DTrackEvents)
 		void OnFlystickData(const int32 FlystickID, const FVector &Position, const FRotator &Rotation);
 
+		/**
+		 * This is called when the user presses buttons on flysticks.
+		 * It is only called when a button changes state to either Pressed or not Pressed
+		 */
+		UFUNCTION(BlueprintNativeEvent, Category = DTrackEvents)
+		void OnFlystickButton(const int32 FlystickID, const int32 &ButtonIndex, const bool Pressed);
+
+
 		virtual FString ToString();
 };

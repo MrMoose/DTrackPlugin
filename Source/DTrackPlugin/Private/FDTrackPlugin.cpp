@@ -125,7 +125,10 @@ void FDTrackPlugin::DTrackTick(float n_delta_time) {
 		UE_LOG(DTrackPluginLog, Warning, TEXT("Erraneous plugin tick ignored."));
 		return;
 	} else {
-		m_dtrack->receive();
+		if (!m_dtrack->receive()) {
+			UE_LOG(DTrackPluginLog, Warning, TEXT("Receiving DTrack data failed."));
+			return;
+		}
 	}
 
 	if (m_dtrack2) {
@@ -140,51 +143,69 @@ void FDTrackPlugin::DTrackTick(float n_delta_time) {
 
 	// iterate all registered components and call the interface methods upon them
 	for (TWeakObjectPtr<UDTrackComponent> c : m_clients) {
-
 		// components might get killed and created along the way.
 		// I only operate those which seem to live OK
 		UDTrackComponent *component = c.Get();
-		if (!component) {
-			continue;
-		}
-
-		// now handle the different tracking types by calling the component
-		// which will sort out what to do
-
-		// bodies first
-		const DTrack_Body_Type_d *body = nullptr;
-		for (int i = 0; i < m_dtrack->getNumBody(); i++) {  // why do people still use int for those counters?
-			body = m_dtrack->getBody(i);
-			checkf(body, TEXT("DTrack API error, body address null"));
-
-			if (body->quality > 0) {
-				// Quality below zero means the body is not visible to the system right now. I won't call the interface
-
-				FVector translation = from_dtrack_location(body->loc);
-				FRotator rotation = from_dtrack_rotation(body->rot);
-
-				component->body_tracking(body->id, translation, rotation);
-			}
-		}
-
-		// now flysticks
-		const DTrack_FlyStick_Type_d *flystick = nullptr;
-		for (int i = 0; i < m_dtrack->getNumFlyStick(); i++) {
-			flystick = m_dtrack->getFlyStick(i);
-			checkf(flystick, TEXT("DTrack API error, flystick address null"));
-
-			if (flystick->quality > 0) {
-				// Quality below zero means the body is not visible to the system right now. I won't call the interface
-
-				FVector translation = from_dtrack_location(flystick->loc);
-				FRotator rotation = from_dtrack_rotation(flystick->rot);
-
-				component->flystick_tracking(flystick->id, translation, rotation);
-			}
+		if (component) {
+			// now handle the different tracking types by calling the component
+			handle_bodies(component);
+			handle_flysticks(component);
 		}
 	}
 }
 
+void FDTrackPlugin::handle_bodies(UDTrackComponent * component) {
+
+	const DTrack_Body_Type_d *body = nullptr;
+	for (int i = 0; i < m_dtrack->getNumBody(); i++) {  // why do people still use int for those counters?
+		body = m_dtrack->getBody(i);
+		checkf(body, TEXT("DTrack API error, body address null"));
+
+		if (body->quality > 0) {
+			// Quality below zero means the body is not visible to the system right now. I won't call the interface
+
+			FVector translation = from_dtrack_location(body->loc);
+			FRotator rotation = from_dtrack_rotation(body->rot);
+
+			component->body_tracking(body->id, translation, rotation);
+		}
+	}
+}
+
+void FDTrackPlugin::handle_flysticks(UDTrackComponent * component) {
+
+	const DTrack_FlyStick_Type_d *flystick = nullptr;
+	for (int i = 0; i < m_dtrack->getNumFlyStick(); i++) {
+		flystick = m_dtrack->getFlyStick(i);
+		checkf(flystick, TEXT("DTrack API error, flystick address null"));
+
+		if (flystick->quality > 0) {
+			// Quality below zero means the body is not visible to the system right now. I won't call the interface
+			FVector translation = from_dtrack_location(flystick->loc);
+			FRotator rotation = from_dtrack_rotation(flystick->rot);
+			component->flystick_tracking(flystick->id, translation, rotation);
+		}
+
+		// Now let's see if we already have a state vector for this flystick's buttons
+		if (m_flystick_buttons.size() < (flystick->id + 1)) {
+			// vector too small, insert new empties to pad
+			std::vector<int> new_stick;
+			new_stick.resize(DTRACKSDK_FLYSTICK_MAX_BUTTON, 0);
+			m_flystick_buttons.resize(flystick->id + 1, new_stick);
+		}
+
+		std::vector<int> &current_stick = m_flystick_buttons[flystick->id];
+
+		// have to go through all the button states now to figure out which ones have differed
+		for (int button_idx = 0; button_idx < flystick->num_button; button_idx++) {
+			if (flystick->button[button_idx] != current_stick[button_idx]) {
+				// if the button has changed state, call the interface and remember current state.
+				current_stick[button_idx] = flystick->button[button_idx];
+				component->flystick_button(flystick->id, button_idx, (flystick->button[button_idx] == 1));
+			}
+		}
+	}
+}
 
 void FDTrackPlugin::start_up(UDTrackComponent *n_client) {
 

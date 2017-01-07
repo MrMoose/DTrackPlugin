@@ -28,6 +28,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 class DTrackSDK;
 
@@ -44,6 +45,8 @@ class FDTrackPlugin : public IDTrackPlugin {
 		/** Manual looping, currently called in main thread */
 		void DTrackTick(float DeltaTime);
 
+
+
 		/** Optional Public API For direct module bind */
 		bool IsRemoteEnabled();
 
@@ -55,6 +58,12 @@ class FDTrackPlugin : public IDTrackPlugin {
 		void begin_tracking();
 
 	private:
+		
+		/// consider the current frame's 6dof bodies and call the component if appropriate
+		void handle_bodies(UDTrackComponent * component);
+
+		/// consider the current frame's flystick tracking and button and call the component if appropriate
+		void handle_flysticks(UDTrackComponent * component);
 
 		/// this is the DTrack SDK main object. I'll have one one owned here as Í do not know if they can coexist
 		std::unique_ptr< DTrackSDK > m_dtrack;
@@ -67,6 +76,12 @@ class FDTrackPlugin : public IDTrackPlugin {
 		 * So it's only considered if m_dtrack2
 		 */
 		unsigned int                 m_last_seen_frame = 0;
+
+		/** 
+		 * each flystick gets its button states remembered here.
+		 * flystick's ID is index in vector
+		 */
+		std::vector< std::vector<int> > m_flystick_buttons;
 
 		/// each DTrack component registers itself here and gets called every tick
 		TArray< TWeakObjectPtr<UDTrackComponent> > m_clients;

@@ -131,3 +131,10 @@ void UDTrackComponent::flystick_tracking(const int32 n_flystick_id, const FVecto
 		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Yellow, "Owning Actor does not implement DTrack interface");
 	}
 }
+
+void UDTrackComponent::flystick_button(const int32 n_flystick_id, const int32 n_button_number, const bool n_pressed) {
+
+	if (GetOwner()->GetClass()->ImplementsInterface(UDTrackInterface::StaticClass())) {
+		IDTrackInterface::Execute_OnFlystickButton(GetOwner(), n_flystick_id, n_button_number, n_pressed);
+	}
+}

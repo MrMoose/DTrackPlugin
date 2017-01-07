@@ -64,9 +64,11 @@ class DTRACKPLUGIN_API UDTrackComponent : public UActorComponent {
 		/// body tracking info came in. Take those and relay to the owning actor's interface
 		void body_tracking(const int32 n_body_id, const FVector &n_translation, const FRotator &n_rotation);
 
-		/// flystick data came in. Take those and relay to the owning actor's interface
+		/// flystick tracking data came in. Take those and relay to the owning actor's interface
 		void flystick_tracking(const int32 n_flystick_id, const FVector &n_translation, const FRotator &n_rotation);
 
+		/// flystick button was pressed or released. Relay to the owning actor's interface
+		void flystick_button(const int32 n_flystick_id, const int32 n_button_number, const bool n_pressed);
 
 	private:
 
