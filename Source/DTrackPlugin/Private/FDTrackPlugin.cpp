@@ -98,7 +98,6 @@ void FDTrackPlugin::StartupModule() {
 	
 	UE_LOG(DTrackPluginLog, Log, TEXT("Using DTrack Plugin version %s"), TEXT(PLUGIN_VERSION));
 
-
 }
 
 void FDTrackPlugin::ShutdownModule() {
@@ -117,20 +116,37 @@ bool FDTrackPlugin::IsRemoteEnabled() {
 }
 
 
-void FDTrackPlugin::DTrackTick(float n_delta_time) {
-
-	// @todo in case of multiple components, make sure we don't double tick each frame
+void FDTrackPlugin::tick(const float n_delta_time, const UDTrackComponent *n_component) {
 
 	if (!m_dtrack || !m_tracking_active) {
 		UE_LOG(DTrackPluginLog, Warning, TEXT("Erraneous plugin tick ignored."));
 		return;
-	} else {
-		if (!m_dtrack->receive()) {
-			UE_LOG(DTrackPluginLog, Warning, TEXT("Receiving DTrack data failed."));
-			return;
+	}
+	
+	// only one component may cause an actual tick to save performance.
+	// which one doesn't matter though. So I take any and store it
+	if (!m_ticker.IsValid()) {
+		for (TWeakObjectPtr<UDTrackComponent> c : m_clients) {
+			if (c.IsValid()) {
+				m_ticker = c;
+			}
 		}
 	}
+	
+	// if this is the case, who calls us then? 
+	checkf(m_ticker.IsValid(), TEXT("unknown ticker"));
+	if (m_ticker.Get() != n_component) {
+		return;
+	}
 
+	// receive pending datagrams
+	if (!m_dtrack->receive()) {
+		UE_LOG(DTrackPluginLog, Warning, TEXT("Receiving DTrack data failed."));
+		return;
+	}
+
+	// try to sav performance for DTrack2 protocol, which has a frame counter.
+	// why does DTrack not have that? Should be easy to implement...
 	if (m_dtrack2) {
 		unsigned int current_frame = m_dtrack->getMessageFrameNr();
 		if (m_last_seen_frame == current_frame) {
@@ -204,6 +220,17 @@ void FDTrackPlugin::handle_flysticks(UDTrackComponent * component) {
 				component->flystick_button(flystick->id, button_idx, (flystick->button[button_idx] == 1));
 			}
 		}
+
+		// have to go through all the joysticks, assemble their values and call the collected interface
+		TArray<float> joysticks;  // have to use float as blueprints don't support TArray<double>
+		joysticks.AddZeroed(flystick->num_joystick);
+		for (int joystick_idx = 0; joystick_idx < flystick->num_joystick; joystick_idx++) {
+			joysticks[joystick_idx] = static_cast<float>(flystick->joystick[joystick_idx]);
+		}
+
+		component->flystick_joystick(flystick->id, joysticks);
+
+		// that's it. Flystick all done.
 	}
 }
 

@@ -72,6 +72,16 @@ class DTRACKPLUGIN_API IDTrackInterface {
 		UFUNCTION(BlueprintNativeEvent, Category = DTrackEvents)
 		void OnFlystickButton(const int32 FlystickID, const int32 &ButtonIndex, const bool Pressed);
 
+		/**
+		 * Each flystick can have multiple "joysticks".
+		 * I suppose those are like the little analog controller sticks on, say PS4 or XBox controllers.
+		 * Interestingly they appear to have only one dimension with values ranging between -1 and 1.
+		 * I suppose a second dimension will manifest as a second stick, which is why I treat them all
+		 * in one call rather than separate calls per joystick.
+		 */
+		UFUNCTION(BlueprintNativeEvent, Category = DTrackEvents)
+		void OnFlystickJoystick(const int32 FlystickID, const TArray<float> &JoystickValues);
+
 
 		virtual FString ToString();
 };

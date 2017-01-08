@@ -64,11 +64,18 @@ class DTRACKPLUGIN_API UDTrackComponent : public UActorComponent {
 		/// body tracking info came in. Take those and relay to the owning actor's interface
 		void body_tracking(const int32 n_body_id, const FVector &n_translation, const FRotator &n_rotation);
 
-		/// flystick tracking data came in. Take those and relay to the owning actor's interface
+		/// Flystick tracking data came in. Take those and relay to the owning actor's interface
 		void flystick_tracking(const int32 n_flystick_id, const FVector &n_translation, const FRotator &n_rotation);
 
-		/// flystick button was pressed or released. Relay to the owning actor's interface
+		/// Flystick button was pressed or released. Relay to the owning actor's interface
 		void flystick_button(const int32 n_flystick_id, const int32 n_button_number, const bool n_pressed);
+
+		/** 
+		 * Flystick joystick values changed. I will hand them in all at once assuming multiple dimensions
+		 * manifest as multiple joysticks and the user will want to treat them in once call rather than deperate 
+		 * calls
+		 */
+		void flystick_joystick(const int32 n_flystick_id, const TArray<float> &n_joysticks);
 
 	private:
 

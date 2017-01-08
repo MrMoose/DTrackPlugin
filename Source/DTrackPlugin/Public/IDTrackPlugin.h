@@ -68,7 +68,7 @@ class IDTrackPlugin : public IModuleInterface {
 		virtual void start_up(class UDTrackComponent *n_client) = 0;
 
 		/**
-		 * Counterpart to start_up. Tell the plugin this component is no longer 
+		 * Counterpart to start_up. Tell the plug-in this component is no longer 
 		 * interested in tracking data. If this is the last component, tracking will stop
 		 */
 		virtual void remove(class UDTrackComponent *n_client) = 0;
@@ -76,9 +76,9 @@ class IDTrackPlugin : public IModuleInterface {
 		/// begin measurement by starting to receive tracking data
 		virtual void begin_tracking() = 0;
 
-
-		virtual void RemoveDelegate() {};
-		virtual void DTrackTick(float DeltaTime) {};
+		/// client components call this to HUP the plug-in and cause it to tick,
+		/// which it doesn't seem to be able to do on its own.
+		virtual void tick(const float n_delta_time, const UDTrackComponent *n_component) = 0;
 
 		virtual bool IsRemoteEnabled() = 0;
 };

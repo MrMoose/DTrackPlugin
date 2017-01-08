@@ -100,7 +100,7 @@ void UDTrackComponent::TickComponent(float n_delta_time, enum ELevelTick n_tick_
 
 	// Forward the component tick to the plugin
 	if (m_plugin) {
-		m_plugin->DTrackTick(n_delta_time);
+		m_plugin->tick(n_delta_time, this);
 	}
 }
 
@@ -136,5 +136,12 @@ void UDTrackComponent::flystick_button(const int32 n_flystick_id, const int32 n_
 
 	if (GetOwner()->GetClass()->ImplementsInterface(UDTrackInterface::StaticClass())) {
 		IDTrackInterface::Execute_OnFlystickButton(GetOwner(), n_flystick_id, n_button_number, n_pressed);
+	}
+}
+
+void UDTrackComponent::flystick_joystick(const int32 n_flystick_id, const TArray<float> &n_joysticks) {
+	
+	if (GetOwner()->GetClass()->ImplementsInterface(UDTrackInterface::StaticClass())) {
+		IDTrackInterface::Execute_OnFlystickJoystick(GetOwner(), n_flystick_id, n_joysticks);
 	}
 }

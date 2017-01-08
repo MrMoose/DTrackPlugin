@@ -43,7 +43,7 @@ class FDTrackPlugin : public IDTrackPlugin {
 		void ShutdownModule();
 
 		/** Manual looping, currently called in main thread */
-		void DTrackTick(float DeltaTime);
+		void tick(const float n_delta_time, const UDTrackComponent *n_component);
 
 
 
@@ -85,4 +85,7 @@ class FDTrackPlugin : public IDTrackPlugin {
 
 		/// each DTrack component registers itself here and gets called every tick
 		TArray< TWeakObjectPtr<UDTrackComponent> > m_clients;
+
+		/// only one of the client components will cause us to tick, so we don't do unnecessary frame ticks
+		TWeakObjectPtr<UDTrackComponent>           m_ticker;
 };
