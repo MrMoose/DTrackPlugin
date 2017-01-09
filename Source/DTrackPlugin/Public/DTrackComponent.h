@@ -25,7 +25,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
-
+#include "DTrackInterface.h"
 #include "DTrackComponent.generated.h"
 
 UCLASS(ClassGroup="Input Controller", meta=(BlueprintSpawnableComponent))
@@ -72,10 +72,15 @@ class DTRACKPLUGIN_API UDTrackComponent : public UActorComponent {
 
 		/** 
 		 * Flystick joystick values changed. I will hand them in all at once assuming multiple dimensions
-		 * manifest as multiple joysticks and the user will want to treat them in once call rather than deperate 
+		 * manifest as multiple joysticks and the user will want to treat them in once call rather than separate 
 		 * calls
 		 */
 		void flystick_joystick(const int32 n_flystick_id, const TArray<float> &n_joysticks);
+
+		/**
+		 * Hand and finger tracking data comes in.
+		 */
+		void hand_tracking(const int32 n_hand_id, const bool n_right, const FVector &n_translation, const FRotator &n_rotation, const TArray<FFinger> &n_fingers);
 
 	private:
 

@@ -26,7 +26,7 @@
 
 #include "DTrackPluginPrivatePCH.h"
 #include "DTrackComponent.h"
-#include "DTrackInterface.h"
+
 #include "FDTrackPlugin.h"
 #include "Engine.h"
 #include "CoreUObject.h"
@@ -119,7 +119,7 @@ void UDTrackComponent::body_tracking(const int32 n_body_id, const FVector &n_tra
 	if (GetOwner()->GetClass()->ImplementsInterface(UDTrackInterface::StaticClass())) {
 		IDTrackInterface::Execute_OnBodyData(GetOwner(), n_body_id, n_translation, n_rotation);
 	} else {
-		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Yellow, "Owning Actor does not implement DTrack interface");
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, "Owning Actor does not implement DTrack interface");
 	}
 }
 
@@ -128,7 +128,7 @@ void UDTrackComponent::flystick_tracking(const int32 n_flystick_id, const FVecto
 	if (GetOwner()->GetClass()->ImplementsInterface(UDTrackInterface::StaticClass())) {
 		IDTrackInterface::Execute_OnFlystickData(GetOwner(), n_flystick_id, n_translation, n_rotation);
 	} else {
-		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Yellow, "Owning Actor does not implement DTrack interface");
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, "Owning Actor does not implement DTrack interface");
 	}
 }
 
@@ -143,5 +143,14 @@ void UDTrackComponent::flystick_joystick(const int32 n_flystick_id, const TArray
 	
 	if (GetOwner()->GetClass()->ImplementsInterface(UDTrackInterface::StaticClass())) {
 		IDTrackInterface::Execute_OnFlystickJoystick(GetOwner(), n_flystick_id, n_joysticks);
+	}
+}
+
+void UDTrackComponent::hand_tracking(const int32 n_hand_id, const bool n_right, const FVector &n_translation, const FRotator &n_rotation, const TArray<FFinger> &n_fingers) {
+	
+	if (GetOwner()->GetClass()->ImplementsInterface(UDTrackInterface::StaticClass())) {
+		IDTrackInterface::Execute_OnHandTracking(GetOwner(), n_hand_id, n_right, n_translation, n_rotation, n_fingers);
+	} else {
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, "Owning Actor does not implement DTrack interface");
 	}
 }

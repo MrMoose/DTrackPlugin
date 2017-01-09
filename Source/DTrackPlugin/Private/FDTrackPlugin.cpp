@@ -129,6 +129,7 @@ void FDTrackPlugin::tick(const float n_delta_time, const UDTrackComponent *n_com
 		for (TWeakObjectPtr<UDTrackComponent> c : m_clients) {
 			if (c.IsValid()) {
 				m_ticker = c;
+				break;
 			}
 		}
 	}
@@ -166,11 +167,12 @@ void FDTrackPlugin::tick(const float n_delta_time, const UDTrackComponent *n_com
 			// now handle the different tracking types by calling the component
 			handle_bodies(component);
 			handle_flysticks(component);
+			handle_fingers(component);
 		}
 	}
 }
 
-void FDTrackPlugin::handle_bodies(UDTrackComponent * component) {
+void FDTrackPlugin::handle_bodies(UDTrackComponent *n_component) {
 
 	const DTrack_Body_Type_d *body = nullptr;
 	for (int i = 0; i < m_dtrack->getNumBody(); i++) {  // why do people still use int for those counters?
@@ -183,12 +185,12 @@ void FDTrackPlugin::handle_bodies(UDTrackComponent * component) {
 			FVector translation = from_dtrack_location(body->loc);
 			FRotator rotation = from_dtrack_rotation(body->rot);
 
-			component->body_tracking(body->id, translation, rotation);
+			n_component->body_tracking(body->id, translation, rotation);
 		}
 	}
 }
 
-void FDTrackPlugin::handle_flysticks(UDTrackComponent * component) {
+void FDTrackPlugin::handle_flysticks(UDTrackComponent *n_component) {
 
 	const DTrack_FlyStick_Type_d *flystick = nullptr;
 	for (int i = 0; i < m_dtrack->getNumFlyStick(); i++) {
@@ -199,7 +201,7 @@ void FDTrackPlugin::handle_flysticks(UDTrackComponent * component) {
 			// Quality below zero means the body is not visible to the system right now. I won't call the interface
 			FVector translation = from_dtrack_location(flystick->loc);
 			FRotator rotation = from_dtrack_rotation(flystick->rot);
-			component->flystick_tracking(flystick->id, translation, rotation);
+			n_component->flystick_tracking(flystick->id, translation, rotation);
 		}
 
 		// Now let's see if we already have a state vector for this flystick's buttons
@@ -217,7 +219,7 @@ void FDTrackPlugin::handle_flysticks(UDTrackComponent * component) {
 			if (flystick->button[button_idx] != current_stick[button_idx]) {
 				// if the button has changed state, call the interface and remember current state.
 				current_stick[button_idx] = flystick->button[button_idx];
-				component->flystick_button(flystick->id, button_idx, (flystick->button[button_idx] == 1));
+				n_component->flystick_button(flystick->id, button_idx, (flystick->button[button_idx] == 1));
 			}
 		}
 
@@ -228,9 +230,50 @@ void FDTrackPlugin::handle_flysticks(UDTrackComponent * component) {
 			joysticks[joystick_idx] = static_cast<float>(flystick->joystick[joystick_idx]);
 		}
 
-		component->flystick_joystick(flystick->id, joysticks);
+		if (joysticks.Num()) {
+			n_component->flystick_joystick(flystick->id, joysticks);
+		}
 
 		// that's it. Flystick all done.
+	}
+}
+
+void FDTrackPlugin::handle_fingers(UDTrackComponent *n_component) {
+
+	const DTrack_Hand_Type_d *hand = nullptr;
+	for (int i = 0; i < m_dtrack->getNumHand(); i++) {
+		hand = m_dtrack->getHand(i);
+		checkf(hand, TEXT("DTrack API error, hand address is null"));
+
+		if (hand->quality > 0) {
+			FVector translation = from_dtrack_location(hand->loc);
+			FRotator rotation = from_dtrack_rotation(hand->rot);
+			TArray<FFinger> fingers;
+
+			for (int j = 0; j < hand->nfinger; j++) {
+				FFinger finger;
+				switch (j) {     // this is mostly to allow for the blueprint to be a 
+								 // little more expressive than using assumptions about the index' meaning
+					case 0: finger.m_type = EFingerType::FT_Thumb; break;
+					case 1: finger.m_type = EFingerType::FT_Index; break;
+					case 2: finger.m_type = EFingerType::FT_Middle; break;
+					case 3: finger.m_type = EFingerType::FT_Ring; break;
+					case 4: finger.m_type = EFingerType::FT_Pinky; break;
+				}
+
+				finger.m_location = from_dtrack_location(hand->finger[j].loc);
+				finger.m_rotation = from_dtrack_rotation(hand->finger[j].rot);
+				finger.m_tip_radius = hand->finger[j].radiustip;
+				finger.m_inner_phalanx_length = hand->finger[j].lengthphalanx[2];
+				finger.m_middle_phalanx_length = hand->finger[j].lengthphalanx[1];
+				finger.m_outer_phalanx_length = hand->finger[j].lengthphalanx[0];
+				finger.m_inner_middle_phalanx_angle = hand->finger[j].anglephalanx[1];
+				finger.m_middle_outer_phalanx_angle = hand->finger[j].anglephalanx[0];
+				fingers.Add(std::move(finger));
+			}
+
+			n_component->hand_tracking(hand->id, (hand->lr == 1), translation, rotation, fingers);
+		}
 	}
 }
 

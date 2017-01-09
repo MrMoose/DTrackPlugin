@@ -28,6 +28,58 @@
 
 #include "DTrackInterface.generated.h"
 
+UENUM(BlueprintType)
+enum class EFingerType : uint8 {
+	FT_Thumb    UMETA(DisplayName = "Thumb"),
+	FT_Index    UMETA(DisplayName = "Index"),
+	FT_Middle   UMETA(DisplayName = "Middle"),
+	FT_Ring     UMETA(DisplayName = "Ring"),
+	FT_Pinky    UMETA(DisplayName = "Pinky")
+};
+
+/**
+ * This represents one finger (guess which one) as tracked info come in
+ */
+USTRUCT(BlueprintType)
+struct FFinger {
+
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "Type"))
+	EFingerType  m_type;
+
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "Location"))
+	FVector  m_location;
+
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "Rotation"))
+	FRotator m_rotation;
+
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "Radius Of Tip"))
+	float    m_tip_radius;
+
+	// phalanges (plural of phalanx) will not only come and getcha with their spears 
+	// but are also the bones that form your fingers. Imagine that!
+
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "Inner Phalanx Length"))
+	float    m_inner_phalanx_length;
+
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "Middle Phalanx Length"))
+	float    m_middle_phalanx_length;
+
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "Outer Phalanx Length"))
+	float    m_outer_phalanx_length;
+
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "Inner Middle Phalanx Angle"))
+	float    m_inner_middle_phalanx_angle;
+
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "Middle Outer Phalanx Angle"))
+	float    m_middle_outer_phalanx_angle;
+};
+
+
+
+
+
 UINTERFACE(Blueprintable)
 class UDTrackInterface : public UInterface {
 
@@ -81,6 +133,12 @@ class DTRACKPLUGIN_API IDTrackInterface {
 		 */
 		UFUNCTION(BlueprintNativeEvent, Category = DTrackEvents)
 		void OnFlystickJoystick(const int32 FlystickID, const TArray<float> &JoystickValues);
+		
+		/**
+		 * Hand and finger tracking data comes in. They are collected in one call assuming they be treated at once.
+		 */
+		UFUNCTION(BlueprintNativeEvent, Category = DTrackEvents)
+		void OnHandTracking(const int32 HandID, const bool Right, const FVector &Translation, const FRotator &Rotation, const TArray<FFinger> &Fingers);
 
 
 		virtual FString ToString();

@@ -60,10 +60,13 @@ class FDTrackPlugin : public IDTrackPlugin {
 	private:
 		
 		/// consider the current frame's 6dof bodies and call the component if appropriate
-		void handle_bodies(UDTrackComponent * component);
+		void handle_bodies(UDTrackComponent *n_component);
 
 		/// consider the current frame's flystick tracking and button and call the component if appropriate
-		void handle_flysticks(UDTrackComponent * component);
+		void handle_flysticks(UDTrackComponent *n_component);
+	
+		/// treat everything hand and finger tracking relevant
+		void handle_fingers(UDTrackComponent *n_component);
 
 		/// this is the DTrack SDK main object. I'll have one one owned here as Í do not know if they can coexist
 		std::unique_ptr< DTrackSDK > m_dtrack;
