@@ -122,12 +122,13 @@ Before you start your game, select any actor instance of this type and go to the
 ## Blueprint
 Using this is Blueprint is quite similar. Start by selecting your blueprint actor in the Editor and use Details->Add Component And select `DTrack` in the list. The component will appear similar to the screenshot above. The settings are also the same and you should make them point to your DTrack server.
 
-Then open the Blueprint Editor for your actor. Select "Class Settings" and navigate to the right side of the screen to add the DTrack Interface to your actor. 
+Then open the Blueprint Editor for your actor. Select "Class Settings" and navigate to the right side of the screen to add the DTrack Interface to your actor. Use 'Add' and select `DTrackInterface`. Compile and save your blueprint to continue.
 
 ![Blueprint_Interface Screenshot](/images/Blueprint_interface_property.jpg)
 
 This is equivalent to deriving from the `IDTrackInterface` base in your C++ actor.
 
+Once this is done, you can implement any of the events the C++ actor could implement. To do this, go to the "Event Graph" tab and right click into the window. From the context menu select "Add Event" -> "DTrack Events" and choose which one you would like to implement. From there it's straight foward blueprint.
 
 
 When using, obviously make sure the plugin is loaded and you don't accidently unload it. Also, make sure your Actor is marked as movable.
