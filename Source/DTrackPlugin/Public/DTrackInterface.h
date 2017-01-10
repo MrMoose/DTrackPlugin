@@ -45,34 +45,34 @@ struct FFinger {
 
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, meta = (DisplayName = "Type"))
-	EFingerType  m_type;
+	UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Type"))
+	EFingerType m_type;
 
-	UPROPERTY(EditAnywhere, meta = (DisplayName = "Location"))
+	UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Location"))
 	FVector  m_location;
 
-	UPROPERTY(EditAnywhere, meta = (DisplayName = "Rotation"))
+	UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Rotation"))
 	FRotator m_rotation;
 
-	UPROPERTY(EditAnywhere, meta = (DisplayName = "Radius Of Tip"))
+	UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Radius Of Tip"))
 	float    m_tip_radius;
 
 	// phalanges (plural of phalanx) will not only come and getcha with their spears 
 	// but are also the bones that form your fingers. Imagine that!
 
-	UPROPERTY(EditAnywhere, meta = (DisplayName = "Inner Phalanx Length"))
+	UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Inner Phalanx Length"))
 	float    m_inner_phalanx_length;
 
-	UPROPERTY(EditAnywhere, meta = (DisplayName = "Middle Phalanx Length"))
+	UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Middle Phalanx Length"))
 	float    m_middle_phalanx_length;
 
-	UPROPERTY(EditAnywhere, meta = (DisplayName = "Outer Phalanx Length"))
+	UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Outer Phalanx Length"))
 	float    m_outer_phalanx_length;
 
-	UPROPERTY(EditAnywhere, meta = (DisplayName = "Inner Middle Phalanx Angle"))
+	UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Inner Middle Phalanx Angle"))
 	float    m_inner_middle_phalanx_angle;
 
-	UPROPERTY(EditAnywhere, meta = (DisplayName = "Middle Outer Phalanx Angle"))
+	UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Middle Outer Phalanx Angle"))
 	float    m_middle_outer_phalanx_angle;
 };
 
