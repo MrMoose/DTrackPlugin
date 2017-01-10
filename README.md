@@ -2,15 +2,22 @@
 
 ## Table of Contents
 1. [About](#about)
-2. [Installation](#installation)
-3. [Usage](#usage)
-4.    -> [Native C++](#native-c)
-5.    -> [Blueprint](#blueprint)
+2. [Preconditions](#preconditions)
+3. [Installation](#installation)
+4. [Usage](#usage)
+5.    -> [Native C++](#native-c)
+6.    -> [Blueprint](#blueprint)
 
 ## About
-This is a plugin for the Unreal Engine 4.14 with the purpose of native integration 
+This is a plug-in for the Unreal Engine 4.14 with the purpose of native integration 
 of the Advanded Realtime Tracking DTrack and DTrack2 tracking solutions.
 It supports both Blueprint and native C++ usage.
+
+This plug-in includes the official DTrack SDK 2.4.1 in binary form. Its license is identical to this.
+
+## Preconditions
+This plugin only supports the Windows 64 bit platform. To use it you need the Unreal Engine 4.13 
+or later and Microsoft Visual Studio 2015 (Express or Community Edition should suffice). Other platforms are not supported.
 
 ## Installation
 To use this, setup your Unreal Project as a C++ Project (This doesn't mean there's 
@@ -22,7 +29,7 @@ this repository into this folder and regenerate your project. That's all.
 Using this functionality is generally focused on enhancing any Actor with tracking information. 
 This can happen in either C++ or Blueprint. There's usually 3 steps involved:
 
-1. Add a `DTrackComponent` to your actor. This component will act as glue between your actor and the underlying plug-in. It also configures the plugin with the settings for your DTrack system such as server hostname or port. Please note that at this point you can only connect to one such endpoint. You can have multiple components but they should point to the same server. Any of them will be chosen to setup tracking.
+1. Add a `DTrackComponent` to your actor. This component will act as glue between your actor and the underlying plug-in. It also configures the plugin with the settings for your DTrack system such as server hostname or port. Please note that at this point you can only connect to one such endpoint. You can have multiple components but they must all point to the same server endpoint. Any of them will be chosen to initially setup tracking.
 2. Add the `IDTrackInterface` to your actor. Implementing this interface will allow you to react to the different kinds of tracking data coming in.
 3. Implement the desired events on the interface as you choose
 
@@ -46,7 +53,7 @@ public MyProject(TargetInfo Target) {
 }
 ```
 
-In C++ based actors you should add `DTrackComponent` to your actor as a `UPROPERTY`. Access specifiers must include write access by the Editor. This is needed so you can modify the component's server settings so don't omit that unless you plan on setting those in code as well. Here's how this could look like: 
+In C++ based actors you will have to add `DTrackComponent` to your actor as a `UPROPERTY` pointer. Access specifiers must include write access by the Editor. This is needed so you can see and modify the component's server settings so don't omit that unless you plan on setting those in code as well. Here's how this could look like: 
 
 ```c++
 #include "DTrackComponent.h"
@@ -76,7 +83,7 @@ class MYPROJECT_API AMyDTrackUsingActor : public AActor, public IDTrackInterface
 }
 ```
 
-Note the `_Implementation` suffices. They are required to be able to override those interface's abstract methods. Don't omit them.
+Note the `_Implementation` suffixes. They are required to be able to override those interface's abstract methods. Don't omit them.
 
 Now in your implementation file you must create the component and implement the interface functions as required. Here's how this could look like:
 
@@ -120,7 +127,7 @@ Before you start your game, select any actor instance of this type and go to the
 ![Properties Screenshot](/images/Properties_Page.jpg)
 
 ## Blueprint
-Using this is Blueprint is quite similar. Start by selecting your blueprint actor in the Editor and use Details->Add Component And select `DTrack` in the list. The component will appear similar to the screenshot above. The settings are also the same and you should make them point to your DTrack server.
+Using this in Blueprints is quite similar. Start by selecting your blueprint actor in the Editor and use Details->Add Component and select `DTrack` in the list. The component will appear similar to the screenshot above. The settings are also the same and you should make them point to your DTrack server.
 
 Then open the Blueprint Editor for your actor. Select "Class Settings" and navigate to the right side of the screen to add the DTrack Interface to your actor. Use 'Add' and select `DTrackInterface`. Compile and save your blueprint to continue.
 
@@ -129,7 +136,6 @@ Then open the Blueprint Editor for your actor. Select "Class Settings" and navig
 This is equivalent to deriving from the `IDTrackInterface` base in your C++ actor.
 
 Once this is done, you can implement any of the events the C++ actor could implement. To do this, go to the "Event Graph" tab and right click into the window. From the context menu select "Add Event" -> "DTrack Events" and choose which one you would like to implement. From there it's straight foward blueprint.
-
 
 When using, obviously make sure the plugin is loaded and you don't accidently unload it. Also, make sure your Actor is marked as movable.
 
