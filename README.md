@@ -4,6 +4,8 @@
 1. [About](#about)
 2. [Installation](#installation)
 3. [Usage](#usage)
+4.    -> [Native C++](#native-c)
+5.    -> [Blueprint](#blueprint)
 
 ## About
 This is a plugin for the Unreal Engine 4.14 with the purpose of native integration 
@@ -53,15 +55,13 @@ In C++ based actors you should add `DTrackComponent` to your actor as a `UPROPER
 UCLASS()
 class MYPROJECT_API AMyDTrackUsingActor : public AActor, public IDTrackInterface {
 
-   GENERATED_BODY()
+	GENERATED_BODY()
  
-   public:
-      ...
-      UPROPERTY(VisibleAnywhere, Category = DTrack)  // Choose your own property specifiers according to your needs.
-      UDTrackComponent *m_dtrack_component;
-      
-      /// Those are the actual event implementations
-      
+	public:
+		...
+		UPROPERTY(VisibleAnywhere, Category = DTrack)  // Choose your own property specifiers according to your needs.
+		UDTrackComponent *m_dtrack_component;
+            
 		/// This implements the IDTrackInterface event for body tracking data coming in
 		void OnBodyData_Implementation(const int32 BodyID, const FVector &Position, const FRotator &Rotation) override;
 
@@ -115,6 +115,13 @@ void AMyDTrackUsingActor::OnFlystickJoystick_Implementation(const int32 Flystick
 
 ```
 
+Before you start your game, select any actor instance of this type and go to the properties window 
+
+## Blueprint
+Using this is Blueprint is quite similar. Start by selecting your blueprint actor in the Editor and use Details->Add Component And select `DTrack` in the list. 
+
+
+When using, obviously make sure the plugin is loaded and you don't accidently unload it. Also, make sure your Actor is marked as movable.
 
 ## License
 Copyright (c) 2017, Advanced Realtime Tracking GmbH
