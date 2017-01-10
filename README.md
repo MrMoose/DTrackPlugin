@@ -115,7 +115,9 @@ void AMyDTrackUsingActor::OnFlystickJoystick_Implementation(const int32 Flystick
 
 ```
 
-Before you start your game, select any actor instance of this type and go to the properties window 
+Before you start your game, select any actor instance of this type and go to the properties window to set your server settings.
+
+![Properties Screenshot](/images/Properties_Page.jpg)
 
 ## Blueprint
 Using this is Blueprint is quite similar. Start by selecting your blueprint actor in the Editor and use Details->Add Component And select `DTrack` in the list. 
