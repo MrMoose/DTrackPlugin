@@ -81,6 +81,11 @@ class DTRACKPLUGIN_API UDTrackComponent : public UActorComponent {
 		 * Hand and finger tracking data comes in.
 		 */
 		void hand_tracking(const int32 n_hand_id, const bool n_right, const FVector &n_translation, const FRotator &n_rotation, const TArray<FFinger> &n_fingers);
+	
+		/**
+		 * Human model tracking data comes in.
+		 */
+		void human_model(const int32 n_human_id, const TArray<FJoint> &n_joints);
 
 	private:
 

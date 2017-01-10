@@ -168,6 +168,7 @@ void FDTrackPlugin::tick(const float n_delta_time, const UDTrackComponent *n_com
 			handle_bodies(component);
 			handle_flysticks(component);
 			handle_fingers(component);
+			handle_human_model(component);
 		}
 	}
 }
@@ -277,6 +278,35 @@ void FDTrackPlugin::handle_fingers(UDTrackComponent *n_component) {
 	}
 }
 
+void FDTrackPlugin::handle_human_model(UDTrackComponent *n_component) {
+	
+	const DTrack_Human_Type_d *human = nullptr;
+	for (int i = 0; i < m_dtrack->getNumHuman(); i++) {
+		human = m_dtrack->getHuman(i);
+		checkf(human, TEXT("DTrack API error, human address is null"));
+
+		TArray<FJoint> joints;
+
+		for (int j = 0; j < human->num_joints; j++) {
+			FJoint joint;
+			// I'm not sure if I should check for quality as I don't know if the caller
+			// would expect number and order of joints to be relevant/constant.
+			// They do carry an ID though so I suppose the caller must be aware of that.
+			if (human->joint[j].quality > 0.1) {
+				joint.m_id = human->joint[j].id;
+				joint.m_location = from_dtrack_location(human->joint[j].loc);
+				joint.m_rotation = from_dtrack_rotation(human->joint[j].rot);
+				joint.m_angles.Add(human->joint[j].ang[0]);   // well, are they Euler angles of the same rot as above or not?
+				joint.m_angles.Add(human->joint[j].ang[1]);
+				joint.m_angles.Add(human->joint[j].ang[2]);
+				joints.Add(std::move(joint));
+			}
+		}
+
+		n_component->human_model(human->id, joints);
+	}
+}
+
 void FDTrackPlugin::start_up(UDTrackComponent *n_client) {
 
 	m_tracking_active = false;
@@ -334,6 +364,7 @@ void FDTrackPlugin::begin_tracking() {
 		} else {
 			UE_LOG(DTrackPluginLog, Error, TEXT("Could not start tracking"));
 		}
+		m_tracking_active = false;
 	} else {
 		m_tracking_active = true;
 		UE_LOG(DTrackPluginLog, Display, TEXT("Tracking started successfully"));

@@ -154,3 +154,10 @@ void UDTrackComponent::hand_tracking(const int32 n_hand_id, const bool n_right, 
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, "Owning Actor does not implement DTrack interface");
 	}
 }
+
+void UDTrackComponent::human_model(const int32 n_human_id, const TArray<FJoint> &n_joints) {
+
+	if (GetOwner()->GetClass()->ImplementsInterface(UDTrackInterface::StaticClass())) {
+		IDTrackInterface::Execute_OnHumanModel(GetOwner(), n_human_id, n_joints);
+	}
+}

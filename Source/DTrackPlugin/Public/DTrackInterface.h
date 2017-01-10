@@ -77,6 +77,32 @@ struct FFinger {
 };
 
 
+/**
+ * This represents one joint of human model tracking.
+ */
+USTRUCT(BlueprintType)
+struct FJoint {
+
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "ID"))
+	int32    m_id;
+
+	UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Location"))
+	FVector  m_location;
+
+	UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Rotation"))
+	FRotator m_rotation;
+
+	/// angles in relation to the joint coordinate system
+	/**
+	 * @todo if this means Euler angles, hand them out as a rotator
+	 *    if they are then identical to m_rotation, remove.
+	 */
+	UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Angles"))
+	TArray<float> m_angles;
+};
+
 
 
 
@@ -137,9 +163,15 @@ class DTRACKPLUGIN_API IDTrackInterface {
 		/**
 		 * Hand and finger tracking data comes in. They are collected in one call assuming they be treated at once.
 		 */
-		UFUNCTION(BlueprintImplementableEvent, Category = DTrackEvents)
+		UFUNCTION(BlueprintNativeEvent, Category = DTrackEvents)
 		void OnHandTracking(const int32 HandID, const bool Right, const FVector &Translation, const FRotator &Rotation, const TArray<FFinger> &Fingers);
 
+		/**
+		 * Human model tracking data comes in. All joints are assembled in this one call
+		 */
+		UFUNCTION(BlueprintNativeEvent, Category = DTrackEvents)
+		void OnHumanModel(const int32 ModelID, const TArray<FJoint> &Joints);
 
+		/// needed by the engine for raw output
 		virtual FString ToString();
 };

@@ -68,6 +68,9 @@ class FDTrackPlugin : public IDTrackPlugin {
 		/// treat everything hand and finger tracking relevant
 		void handle_fingers(UDTrackComponent *n_component);
 
+		/// extract and hand out human model (mocap?) data
+		void handle_human_model(UDTrackComponent *n_component);
+
 		/// this is the DTrack SDK main object. I'll have one one owned here as Í do not know if they can coexist
 		std::unique_ptr< DTrackSDK > m_dtrack;
 		bool                         m_tracking_active = false;
