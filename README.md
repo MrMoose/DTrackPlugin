@@ -53,7 +53,7 @@ public MyProject(TargetInfo Target) {
 }
 ```
 
-In C++ based actors you will have to add `DTrackComponent` to your actor as a `UPROPERTY` pointer. Access specifiers must include write access by the Editor. This is needed so you can see and modify the component's server settings so don't omit that unless you plan on setting those in code as well. Here's how this could look like: 
+In C++ based actors you will have to add `DTrackComponent` to your actor as a `UPROPERTY` pointer and derive from the `IDTrackInterface` interface base. Bear in mind that your primary base (`AActor` in this case) must be the first in the list of base classes. Access specifiers must include write access by the Editor. This is needed so you can see and modify the component's server settings so don't omit that unless you plan on setting those in code as well. Here's how this could look like: 
 
 ```c++
 #include "DTrackComponent.h"
@@ -79,7 +79,7 @@ class MYPROJECT_API AMyDTrackUsingActor : public AActor, public IDTrackInterface
 		void OnFlystickButton_Implementation(const int32 FlystickID, const int32 &ButtonIndex, const bool Pressed) override;
 		void OnFlystickJoystick_Implementation(const int32 FlystickID, const TArray<float> &JoystickValues);
 
-      /// There may be more as the plug-in gains functionality. See the interface docs for details. 
+		/// There may be more as the plug-in gains functionality. See the interface docs for details. 
 }
 ```
 
