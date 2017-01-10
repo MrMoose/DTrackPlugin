@@ -137,7 +137,7 @@ class DTRACKPLUGIN_API IDTrackInterface {
 		/**
 		 * Hand and finger tracking data comes in. They are collected in one call assuming they be treated at once.
 		 */
-		UFUNCTION(BlueprintNativeEvent, Category = DTrackEvents)
+		UFUNCTION(BlueprintImplementableEvent, Category = DTrackEvents)
 		void OnHandTracking(const int32 HandID, const bool Right, const FVector &Translation, const FRotator &Rotation, const TArray<FFinger> &Fingers);
 
 
