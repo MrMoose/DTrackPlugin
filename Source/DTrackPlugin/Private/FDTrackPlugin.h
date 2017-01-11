@@ -71,10 +71,14 @@ class FDTrackPlugin : public IDTrackPlugin {
 		/// extract and hand out human model (mocap?) data
 		void handle_human_model(UDTrackComponent *n_component);
 
+		FVector from_dtrack_location(const double(&n_translation)[3]);
+		FRotator from_dtrack_rotation(const double(&n_matrix)[9]);
+
 		/// this is the DTrack SDK main object. I'll have one one owned here as Í do not know if they can coexist
 		std::unique_ptr< DTrackSDK > m_dtrack;
 		bool                         m_tracking_active = false;
 		bool                         m_dtrack2 = false;
+		bool                         m_z_is_up = true;
 
 		/**
 		 * each frame will only cause the interface to be triggered once.

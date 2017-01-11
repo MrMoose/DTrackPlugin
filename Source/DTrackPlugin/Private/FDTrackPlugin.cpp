@@ -47,28 +47,28 @@ DEFINE_LOG_CATEGORY(DTrackPluginLog);
 #define PLUGIN_VERSION "0.1.0"
 
 // translate a DTrack body location (translation in mm) into Unreal Location (in cm)
-FVector from_dtrack_location(const double(&n_translation)[3]) {
+FVector FDTrackPlugin::from_dtrack_location(const double(&n_translation)[3]) {
 
 	FVector ret;
 
-	// this would be straight forward
-// 	ret.X = n_body->loc[0] / 10;
-// 	ret.Y = n_body->loc[1] / 10;
-// 	ret.Z = n_body->loc[2] / 10;
+	// DTrack coordinates come in mm with either Z or Y being up, which has to be configured by the user.
+	// I translate to Unreal's Z being up and cm units.
+	ret.X =  n_translation[0] / 10;
 
-	// yet I have reason to believe the coordinate systems are different per default
-	// I assume this can be configured in DTrack and said configuration is not to bleed 
-	// into this plugin. Yet I want sensible defaults
-	ret.X = -n_translation[2] / 10;
-	ret.Y = n_translation[0] / 10;
-	ret.Z = n_translation[1] / 10;
+	if (m_z_is_up) {
+		ret.Y = -n_translation[1] / 10;
+		ret.Z =  n_translation[2] / 10;
+	} else {
+		ret.Y = -n_translation[2] / 10;
+		ret.Z =  n_translation[1] / 10;
+	}
 
 	return ret;
 }
 
 
 // translate a DTrack 3x3 rotation matrix (translation in mm) into Unreal Location (in cm)
-FRotator from_dtrack_rotation(const double (&n_matrix)[9]) {
+FRotator FDTrackPlugin::from_dtrack_rotation(const double (&n_matrix)[9]) {
 
 	FQuat ret;
 
@@ -323,6 +323,9 @@ void FDTrackPlugin::start_up(UDTrackComponent *n_client) {
 		} else {
 			m_dtrack.reset(new DTrackSDK(to_string(n_client->m_dtrack_server_ip), 50105, n_client->m_dtrack_server_port));
 		}
+
+		// take that setting as well.
+		m_z_is_up = n_client->m_z_is_up;
 
 		// I don't know when this can occur but I guess it's client
 		// port collision with fixed UDP ports
