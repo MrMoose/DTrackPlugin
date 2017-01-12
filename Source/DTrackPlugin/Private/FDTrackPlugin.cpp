@@ -61,7 +61,7 @@ FVector FDTrackPlugin::from_dtrack_location(const double(&n_translation)[3]) {
 			ret.Y =  n_translation[0] / 10.0;
 			ret.Z =  n_translation[2] / 10.0;
 			break;
-		case ECoordinateSystemType::CST_Adapted:
+		case ECoordinateSystemType::CST_Unreal_Adapted:
 			ret.X =  n_translation[0] / 10.0;
 			ret.Y = -n_translation[1] / 10.0;
 			ret.Z =  n_translation[2] / 10.0;
@@ -100,7 +100,7 @@ FRotator FDTrackPlugin::from_dtrack_rotation(const double (&n_matrix)[9]) {
 			ret.Yaw   = -ret.Yaw;
 			return ret;
 		}
-		case ECoordinateSystemType::CST_Adapted:
+		case ECoordinateSystemType::CST_Unreal_Adapted:
 		{
 			quaternion.X = (n_matrix[2 + 3] - n_matrix[1 + 6]) / w4;
 			quaternion.Y = (n_matrix[0 + 6] - n_matrix[2 + 0]) / w4;
