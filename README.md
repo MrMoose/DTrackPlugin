@@ -37,7 +37,7 @@ All translations and rotations coming in on the interface will already be tranla
 
 * Normal - Right handed with Z is up and X is front
 * Adapted - Right handed with Z as up and Y as front
-* Powerwall - Right handed with Y as up
+* Powerwall - Right handed with X is right, Y as up and -Z as front
 
 Your tracking data will be treated according to this setting so it must correspond to your room calibration.
 
