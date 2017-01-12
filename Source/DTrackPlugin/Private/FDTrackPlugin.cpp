@@ -70,7 +70,7 @@ FVector FDTrackPlugin::from_dtrack_location(const double(&n_translation)[3]) {
 // translate a DTrack 3x3 rotation matrix (translation in mm) into Unreal Location (in cm)
 FRotator FDTrackPlugin::from_dtrack_rotation(const double (&n_matrix)[9]) {
 
-	FQuat ret;
+	FQuat quaternion;
 
 	// this might be all wrong due to me not understanding this the way I should.
 	// Right now all I have is this
@@ -78,15 +78,18 @@ FRotator FDTrackPlugin::from_dtrack_rotation(const double (&n_matrix)[9]) {
 	// explaining how to convert a rotation matrix into a quaternion.
 	// since we had to adjust our coordinate system for the translation though,
 	// this is likely to be wrong
-
 	double w = sqrt(1.0 + n_matrix[0 + 0] + n_matrix[1 + 3] + n_matrix[2 + 6]) / 2.0;
-	ret.W = w;
+	quaternion.W = w;
 	double w4 = 4.0 * w;
-	ret.X = (n_matrix[2 + 3] - n_matrix[1 + 6]) / w4;
-	ret.Y = (n_matrix[0 + 6] - n_matrix[2 + 0]) / w4;
-	ret.Z = (n_matrix[1 + 0] - n_matrix[0 + 3]) / w4;
+	quaternion.X = (n_matrix[2 + 3] - n_matrix[1 + 6]) / w4;
+	quaternion.Y = (n_matrix[0 + 6] - n_matrix[2 + 0]) / w4;
+	quaternion.Z = (n_matrix[1 + 0] - n_matrix[0 + 3]) / w4;
 
-	return ret.Rotator();
+	// Now make a rotator from this and adjust for coordinate system
+	FRotator ret = quaternion.Rotator();
+	ret.Yaw = -ret.Yaw;
+
+	return ret;
 }
 
 std::string to_string(const FString &n_string) {
