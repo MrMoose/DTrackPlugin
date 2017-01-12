@@ -51,8 +51,8 @@ class DTRACKPLUGIN_API UDTrackComponent : public UActorComponent {
 		UPROPERTY(EditAnywhere, meta = (DisplayName = "DTrack2 Protocol", ToolTip = "Use the TCP command channel based DTrack2 protocol"))
 		bool    m_dtrack_2 = true;
 
-		UPROPERTY(EditAnywhere, meta = (DisplayName = "Z Is Up", ToolTip = "Set this to true if your DTrack system is configured to use Z as upwards facing dimension"))
-		bool    m_z_is_up = true;
+		UPROPERTY(EditAnywhere, meta = (DisplayName = "DTrack Room Calibration", ToolTip = "Set this according to your DTrack system's room calibration"))
+		ECoordinateSystemType m_coordinate_system = ECoordinateSystemType::CST_Normal;
 
 		virtual void OnRegister() override;
 		virtual void OnUnregister() override;

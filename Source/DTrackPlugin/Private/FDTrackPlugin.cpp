@@ -54,14 +54,23 @@ FVector FDTrackPlugin::from_dtrack_location(const double(&n_translation)[3]) {
 	// DTrack coordinates come in mm with either Z or Y being up, which has to be configured by the user.
 	// I translate to Unreal's Z being up and cm units.
 	
-	if (m_z_is_up) {
-		ret.X =  n_translation[0] / 10.0;
-		ret.Y = -n_translation[1] / 10.0;
-		ret.Z =  n_translation[2] / 10.0;
-	} else {
-		ret.X =  n_translation[1] / 10.0;
-		ret.Y =  n_translation[0] / 10.0;
-		ret.Z =  n_translation[2] / 10.0;
+	switch (m_coordinate_system) {
+		default:
+		case ECoordinateSystemType::CST_Normal:
+			ret.X =  n_translation[1] / 10.0;
+			ret.Y =  n_translation[0] / 10.0;
+			ret.Z =  n_translation[2] / 10.0;
+			break;
+		case ECoordinateSystemType::CST_Adapted:
+			ret.X =  n_translation[0] / 10.0;
+			ret.Y = -n_translation[1] / 10.0;
+			ret.Z =  n_translation[2] / 10.0;
+			break;
+		case ECoordinateSystemType::CST_Powerwall:
+			ret.X = -n_translation[2] / 10.0;
+			ret.Y =  n_translation[0] / 10.0;
+			ret.Z =  n_translation[1] / 10.0;
+			break;
 	}
 
 	return ret;
@@ -72,38 +81,47 @@ FVector FDTrackPlugin::from_dtrack_location(const double(&n_translation)[3]) {
 FRotator FDTrackPlugin::from_dtrack_rotation(const double (&n_matrix)[9]) {
 
 	FQuat quaternion;
+	double w = sqrt(1.0 + n_matrix[0 + 0] + n_matrix[1 + 3] + n_matrix[2 + 6]) / 2.0;
+	quaternion.W = w;
+	double w4 = 4.0 * w;
 
+	switch (m_coordinate_system) {
+		default:
+		case ECoordinateSystemType::CST_Normal:
+		{
+			quaternion.Y = (n_matrix[2 + 3] - n_matrix[1 + 6]) / w4;
+			quaternion.X = (n_matrix[0 + 6] - n_matrix[2 + 0]) / w4;
+			quaternion.Z = (n_matrix[1 + 0] - n_matrix[0 + 3]) / w4;
 
-	if (m_z_is_up) {
+			// Now make a rotator from this and adjust for coordinate system differences
+			FRotator ret = quaternion.Rotator();
+			ret.Roll  = -ret.Roll;
+			ret.Pitch = -ret.Pitch;
+			ret.Yaw   = -ret.Yaw;
+			return ret;
+		}
+		case ECoordinateSystemType::CST_Adapted:
+		{
+			quaternion.X = (n_matrix[2 + 3] - n_matrix[1 + 6]) / w4;
+			quaternion.Y = (n_matrix[0 + 6] - n_matrix[2 + 0]) / w4;
+			quaternion.Z = (n_matrix[1 + 0] - n_matrix[0 + 3]) / w4;
 
-		double w = sqrt(1.0 + n_matrix[0 + 0] + n_matrix[1 + 3] + n_matrix[2 + 6]) / 2.0;
-		quaternion.W = w;
-		double w4 = 4.0 * w;
-		quaternion.X = (n_matrix[2 + 3] - n_matrix[1 + 6]) / w4;
-		quaternion.Y = (n_matrix[0 + 6] - n_matrix[2 + 0]) / w4;
-		quaternion.Z = (n_matrix[1 + 0] - n_matrix[0 + 3]) / w4;
+			FRotator ret = quaternion.Rotator();
+			ret.Roll = -ret.Roll;
+			ret.Yaw  = -ret.Yaw;
+			return ret;
+		}
+		case ECoordinateSystemType::CST_Powerwall:
+		{
+			quaternion.Y = (n_matrix[2 + 3] - n_matrix[1 + 6]) / w4;
+			quaternion.Z = (n_matrix[0 + 6] - n_matrix[2 + 0]) / w4;
+			quaternion.X = (n_matrix[1 + 0] - n_matrix[0 + 3]) / w4;
 
-		// Now make a rotator from this and adjust for coordinate system differences
-		FRotator ret = quaternion.Rotator();
-		ret.Roll = -ret.Roll;
-		ret.Yaw  = -ret.Yaw;
-		return ret;
-
-	} else {
-
-		double w = sqrt(1.0 + n_matrix[0 + 0] + n_matrix[1 + 3] + n_matrix[2 + 6]) / 2.0;
-		quaternion.W = w;
-		double w4 = 4.0 * w;
-		quaternion.Y = (n_matrix[2 + 3] - n_matrix[1 + 6]) / w4;
-		quaternion.X = (n_matrix[0 + 6] - n_matrix[2 + 0]) / w4;
-		quaternion.Z = (n_matrix[1 + 0] - n_matrix[0 + 3]) / w4;
-
-		// Now make a rotator from this and adjust for coordinate system differences
-		FRotator ret = quaternion.Rotator();
-		ret.Roll  = -ret.Roll;
-		ret.Pitch = -ret.Pitch;
-		ret.Yaw   = -ret.Yaw;
-		return ret;
+			FRotator ret = quaternion.Rotator();
+			ret.Pitch = -ret.Pitch;
+			ret.Yaw   = -ret.Yaw;
+			return ret;
+		}
 	}
 }
 
@@ -338,8 +356,8 @@ void FDTrackPlugin::start_up(UDTrackComponent *n_client) {
 			m_dtrack.reset(new DTrackSDK(to_string(n_client->m_dtrack_server_ip), 50105, n_client->m_dtrack_server_port));
 		}
 
-		// take that setting as well.
-		m_z_is_up = n_client->m_z_is_up;
+		// take room calibration settings as well
+		m_coordinate_system = n_client->m_coordinate_system;
 
 		// I don't know when this can occur but I guess it's client
 		// port collision with fixed UDP ports

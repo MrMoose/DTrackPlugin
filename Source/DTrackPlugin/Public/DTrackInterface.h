@@ -28,6 +28,25 @@
 
 #include "DTrackInterface.generated.h"
 
+/** 
+ * This represents different room calibration default settings as 
+ * set in the DTrack system. Choose the one that corresponds with your setup
+ * and transformations will be translated into Unreal's standard coordinate 
+ * system
+ */
+UENUM(BlueprintType)
+enum class ECoordinateSystemType : uint8 {
+
+	/// The normal setting. Right handed, Z is up and Y is front 
+	CST_Normal     UMETA(DisplayName = "DTrack Normal"),
+
+	/// Right handed with Z as up and X as front
+	CST_Adapted    UMETA(DisplayName = "DTrack Unreal Adapted"),
+
+	/// Powerwall default setting with Y as up
+	CST_Powerwall  UMETA(DisplayName = "DTrack Powerwall")
+};
+
 UENUM(BlueprintType)
 enum class EFingerType : uint8 {
 	FT_Thumb    UMETA(DisplayName = "Thumb"),

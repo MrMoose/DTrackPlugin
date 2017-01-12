@@ -34,7 +34,6 @@ class DTrackSDK;
 
 std::string to_string(const FString &n_string);
 
-
 class FDTrackPlugin : public IDTrackPlugin {
 
 	public:
@@ -45,11 +44,10 @@ class FDTrackPlugin : public IDTrackPlugin {
 		/** Manual looping, currently called in main thread */
 		void tick(const float n_delta_time, const UDTrackComponent *n_component);
 
-
-
 		/** Optional Public API For direct module bind */
 		bool IsRemoteEnabled();
 
+		/// start the tracking system
 		void start_up(class UDTrackComponent *n_client);
 
 		/// tell the plugin we're no longer interested in tracking data
@@ -78,7 +76,7 @@ class FDTrackPlugin : public IDTrackPlugin {
 		std::unique_ptr< DTrackSDK > m_dtrack;
 		bool                         m_tracking_active = false;
 		bool                         m_dtrack2 = false;
-		bool                         m_z_is_up = true;
+		ECoordinateSystemType        m_coordinate_system = ECoordinateSystemType::CST_Normal;
 
 		/**
 		 * each frame will only cause the interface to be triggered once.
