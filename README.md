@@ -33,6 +33,14 @@ This can happen in either C++ or Blueprint. There's usually 3 steps involved:
 2. Add the `IDTrackInterface` to your actor. Implementing this interface will allow you to react to the different kinds of tracking data coming in.
 3. Implement the desired events on the interface as you choose
 
+All translations and rotations coming in on the interface will already be tranlated in Unreal's default coordinate system und use cm as units. In order for this to work correctly the component must know about the room calibration (coordinate system) setting in your DTrack system. The property "DTrack Room Calibration" offers 3 common default settings from which you can choose.
+
+* Normal - Right handed with Z is up and X is front
+* Adapted - Right handed with Z as up and Y as front
+* Powerwall - Right handed with Y as up
+
+Your tracking data will be treated according to this setting so it must correspond to your room calibration.
+
 ### Native C++
 In order to make your project depend on the plugin you may have to add the following to your module's `build.cs` script:
 
