@@ -53,14 +53,15 @@ FVector FDTrackPlugin::from_dtrack_location(const double(&n_translation)[3]) {
 
 	// DTrack coordinates come in mm with either Z or Y being up, which has to be configured by the user.
 	// I translate to Unreal's Z being up and cm units.
-	ret.X =  n_translation[0] / 10;
-
+	
 	if (m_z_is_up) {
-		ret.Y = -n_translation[1] / 10;
-		ret.Z =  n_translation[2] / 10;
+		ret.X =  n_translation[0] / 10.0;
+		ret.Y = -n_translation[1] / 10.0;
+		ret.Z =  n_translation[2] / 10.0;
 	} else {
-		ret.Y = -n_translation[2] / 10;
-		ret.Z =  n_translation[1] / 10;
+		ret.X =  n_translation[1] / 10.0;
+		ret.Y =  n_translation[0] / 10.0;
+		ret.Z =  n_translation[2] / 10.0;
 	}
 
 	return ret;
@@ -72,24 +73,38 @@ FRotator FDTrackPlugin::from_dtrack_rotation(const double (&n_matrix)[9]) {
 
 	FQuat quaternion;
 
-	// this might be all wrong due to me not understanding this the way I should.
-	// Right now all I have is this
-	// http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
-	// explaining how to convert a rotation matrix into a quaternion.
-	// since we had to adjust our coordinate system for the translation though,
-	// this is likely to be wrong
-	double w = sqrt(1.0 + n_matrix[0 + 0] + n_matrix[1 + 3] + n_matrix[2 + 6]) / 2.0;
-	quaternion.W = w;
-	double w4 = 4.0 * w;
-	quaternion.X = (n_matrix[2 + 3] - n_matrix[1 + 6]) / w4;
-	quaternion.Y = (n_matrix[0 + 6] - n_matrix[2 + 0]) / w4;
-	quaternion.Z = (n_matrix[1 + 0] - n_matrix[0 + 3]) / w4;
 
-	// Now make a rotator from this and adjust for coordinate system
-	FRotator ret = quaternion.Rotator();
-	ret.Yaw = -ret.Yaw;
+	if (m_z_is_up) {
 
-	return ret;
+		double w = sqrt(1.0 + n_matrix[0 + 0] + n_matrix[1 + 3] + n_matrix[2 + 6]) / 2.0;
+		quaternion.W = w;
+		double w4 = 4.0 * w;
+		quaternion.X = (n_matrix[2 + 3] - n_matrix[1 + 6]) / w4;
+		quaternion.Y = (n_matrix[0 + 6] - n_matrix[2 + 0]) / w4;
+		quaternion.Z = (n_matrix[1 + 0] - n_matrix[0 + 3]) / w4;
+
+		// Now make a rotator from this and adjust for coordinate system differences
+		FRotator ret = quaternion.Rotator();
+		ret.Roll = -ret.Roll;
+		ret.Yaw  = -ret.Yaw;
+		return ret;
+
+	} else {
+
+		double w = sqrt(1.0 + n_matrix[0 + 0] + n_matrix[1 + 3] + n_matrix[2 + 6]) / 2.0;
+		quaternion.W = w;
+		double w4 = 4.0 * w;
+		quaternion.Y = (n_matrix[2 + 3] - n_matrix[1 + 6]) / w4;
+		quaternion.X = (n_matrix[0 + 6] - n_matrix[2 + 0]) / w4;
+		quaternion.Z = (n_matrix[1 + 0] - n_matrix[0 + 3]) / w4;
+
+		// Now make a rotator from this and adjust for coordinate system differences
+		FRotator ret = quaternion.Rotator();
+		ret.Roll  = -ret.Roll;
+		ret.Pitch = -ret.Pitch;
+		ret.Yaw   = -ret.Yaw;
+		return ret;
+	}
 }
 
 std::string to_string(const FString &n_string) {
@@ -108,16 +123,12 @@ void FDTrackPlugin::ShutdownModule() {
 	m_dtrack.reset();
 }
 
-
-//Public API Implementation
-
 bool FDTrackPlugin::IsRemoteEnabled() {
 
 	// @todo implement
 	
 	return m_dtrack->isLocalDataPortValid();
 }
-
 
 void FDTrackPlugin::tick(const float n_delta_time, const UDTrackComponent *n_component) {
 
