@@ -35,7 +35,7 @@ This can happen in either C++ or Blueprint. There's usually 3 steps involved:
 
 All translations and rotations coming in on the interface will already be tranlated in Unreal's default coordinate system und use cm as units. In order for this to work correctly the component must know about the room calibration (coordinate system) setting in your DTrack system. The property "DTrack Room Calibration" offers 3 common default settings from which you can choose.
 
-* Normal - Right handed with Z is up and Y is up X right
+* Normal - Right handed with Z is up and Y is front, X to the right
 * Powerwall - Right handed with X is right, Y as up and -Z as front
 * Unreal Adapted - Right handed with Z as up and X as front
 
