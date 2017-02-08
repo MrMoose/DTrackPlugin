@@ -96,4 +96,23 @@ class FDTrackPlugin : public IDTrackPlugin {
 
 		/// only one of the client components will cause us to tick, so we don't do unnecessary frame ticks
 		TWeakObjectPtr<UDTrackComponent>           m_ticker;
+
+		/// room coordinate adoption matrix for "normal" setting
+		FMatrix     m_trafo_normal;
+
+		/// transposed variant cached
+		FMatrix     m_trafo_normal_transposed;
+
+		/// room coordinate adoption matrix for "power wall" setting
+		FMatrix     m_trafo_powerwall;
+
+		/// transposed variant cached
+		FMatrix     m_trafo_powerwall_transposed;
+
+		/// room coordinate adoption matrix for "unreal adapted" setting
+		FMatrix     m_trafo_unreal_adapted;
+
+		/// transposed variant cached
+		FMatrix     m_trafo_unreal_adapted_transposed;
+
 };

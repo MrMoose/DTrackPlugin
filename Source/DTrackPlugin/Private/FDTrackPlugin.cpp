@@ -76,53 +76,38 @@ FVector FDTrackPlugin::from_dtrack_location(const double(&n_translation)[3]) {
 	return ret;
 }
 
-
 // translate a DTrack 3x3 rotation matrix (translation in mm) into Unreal Location (in cm)
 FRotator FDTrackPlugin::from_dtrack_rotation(const double (&n_matrix)[9]) {
 
-	FQuat quaternion;
-	double w = sqrt(1.0 + n_matrix[0 + 0] + n_matrix[1 + 3] + n_matrix[2 + 6]) / 2.0;
-	quaternion.W = w;
-	double w4 = 4.0 * w;
+	// take DTrack matrix and put the values into FMatrix 
+	// ( M[RowIndex][ColumnIndex], DTrack matrix comes column-wise )
+	FMatrix r;
+	r.M[0][0] = n_matrix[0 + 0]; r.M[0][1] = n_matrix[0 + 3]; r.M[0][2] = n_matrix[0 + 6]; r.M[0][3] = 0.0;
+	r.M[1][0] = n_matrix[1 + 0]; r.M[1][1] = n_matrix[1 + 3]; r.M[1][2] = n_matrix[1 + 6]; r.M[1][3] = 0.0;
+	r.M[2][0] = n_matrix[2 + 0]; r.M[2][1] = n_matrix[2 + 3]; r.M[2][2] = n_matrix[2 + 6]; r.M[2][3] = 0.0;
+	r.M[3][0] =             0.0; r.M[3][1] =             0.0; r.M[3][2] =             0.0; r.M[3][3] = 1.0;
+
+	FMatrix r_adapted;
 
 	switch (m_coordinate_system) {
 		default:
 		case ECoordinateSystemType::CST_Normal:
-		{
-			quaternion.Y = (n_matrix[2 + 3] - n_matrix[1 + 6]) / w4;
-			quaternion.X = (n_matrix[0 + 6] - n_matrix[2 + 0]) / w4;
-			quaternion.Z = (n_matrix[1 + 0] - n_matrix[0 + 3]) / w4;
 
-			// Now make a rotator from this and adjust for coordinate system differences
-			FRotator ret = quaternion.Rotator();
-			ret.Roll  = -ret.Roll;
-			ret.Pitch = -ret.Pitch;
-			ret.Yaw   = -ret.Yaw;
-			return ret;
-		}
+			r_adapted = m_trafo_normal * r * m_trafo_normal_transposed;
+			break;
+	
 		case ECoordinateSystemType::CST_Unreal_Adapted:
-		{
-			quaternion.X = (n_matrix[2 + 3] - n_matrix[1 + 6]) / w4;
-			quaternion.Y = (n_matrix[0 + 6] - n_matrix[2 + 0]) / w4;
-			quaternion.Z = (n_matrix[1 + 0] - n_matrix[0 + 3]) / w4;
 
-			FRotator ret = quaternion.Rotator();
-			ret.Roll = -ret.Roll;
-			ret.Yaw  = -ret.Yaw;
-			return ret;
-		}
+			r_adapted = m_trafo_unreal_adapted * r * m_trafo_unreal_adapted_transposed;
+			break;
+
 		case ECoordinateSystemType::CST_Powerwall:
-		{
-			quaternion.Y = (n_matrix[2 + 3] - n_matrix[1 + 6]) / w4;
-			quaternion.Z = (n_matrix[0 + 6] - n_matrix[2 + 0]) / w4;
-			quaternion.X = (n_matrix[1 + 0] - n_matrix[0 + 3]) / w4;
 
-			FRotator ret = quaternion.Rotator();
-			ret.Pitch = -ret.Pitch;
-			ret.Yaw   = -ret.Yaw;
-			return ret;
-		}
+			r_adapted = m_trafo_powerwall * r * m_trafo_powerwall_transposed;
+			break;
 	}
+
+	return r_adapted.Rotator();
 }
 
 std::string to_string(const FString &n_string) {
@@ -134,6 +119,32 @@ void FDTrackPlugin::StartupModule() {
 	
 	UE_LOG(DTrackPluginLog, Log, TEXT("Using DTrack Plugin version %s"), TEXT(PLUGIN_VERSION));
 
+	// This is the rotation matrix for coordinate adoption mode "normal"
+	m_trafo_normal.M[0][0] = 0; m_trafo_normal.M[0][1] = 1; m_trafo_normal.M[0][2] = 0; m_trafo_normal.M[0][3] = 0;
+	m_trafo_normal.M[1][0] = 1; m_trafo_normal.M[1][1] = 0; m_trafo_normal.M[1][2] = 0; m_trafo_normal.M[1][3] = 0;
+	m_trafo_normal.M[2][0] = 0; m_trafo_normal.M[2][1] = 0; m_trafo_normal.M[2][2] = 1; m_trafo_normal.M[2][3] = 0;
+	m_trafo_normal.M[3][0] = 0; m_trafo_normal.M[3][1] = 0; m_trafo_normal.M[3][2] = 0; m_trafo_normal.M[3][3] = -1;
+
+	// transposed is cached
+	m_trafo_normal_transposed = m_trafo_normal.GetTransposed();
+	
+	// This is the rotation matrix for coordinate adoption mode "power wall"
+	m_trafo_powerwall.M[0][0] = 0; m_trafo_powerwall.M[0][1] = 0; m_trafo_powerwall.M[0][2] = -1; m_trafo_powerwall.M[0][3] = 0;
+	m_trafo_powerwall.M[1][0] = 1; m_trafo_powerwall.M[1][1] = 0; m_trafo_powerwall.M[1][2] = 0; m_trafo_powerwall.M[1][3] = 0;
+	m_trafo_powerwall.M[2][0] = 0; m_trafo_powerwall.M[2][1] = 1; m_trafo_powerwall.M[2][2] = 0; m_trafo_powerwall.M[2][3] = 0;
+	m_trafo_powerwall.M[3][0] = 0; m_trafo_powerwall.M[3][1] = 0; m_trafo_powerwall.M[3][2] = 0; m_trafo_powerwall.M[3][3] = 1;
+
+	// transposed is cached
+	m_trafo_powerwall_transposed = m_trafo_powerwall.GetTransposed();
+	
+	// This is the rotation matrix for coordinate adoption mode "unreal adapted"
+	m_trafo_unreal_adapted.M[0][0] = 1; m_trafo_unreal_adapted.M[0][1] = 0; m_trafo_unreal_adapted.M[0][2] = 0; m_trafo_unreal_adapted.M[0][3] = 0;
+	m_trafo_unreal_adapted.M[1][0] = 0; m_trafo_unreal_adapted.M[1][1] = -1; m_trafo_unreal_adapted.M[1][2] = 0; m_trafo_unreal_adapted.M[1][3] = 0;
+	m_trafo_unreal_adapted.M[2][0] = 0; m_trafo_unreal_adapted.M[2][1] = 0; m_trafo_unreal_adapted.M[2][2] = 1; m_trafo_unreal_adapted.M[2][3] = 0;
+	m_trafo_unreal_adapted.M[3][0] = 0; m_trafo_unreal_adapted.M[3][1] = 0; m_trafo_unreal_adapted.M[3][2] = 0; m_trafo_unreal_adapted.M[3][3] = 1;
+
+	// transposed is cached
+	m_trafo_unreal_adapted_transposed = m_trafo_unreal_adapted.GetTransposed();
 }
 
 void FDTrackPlugin::ShutdownModule() {
