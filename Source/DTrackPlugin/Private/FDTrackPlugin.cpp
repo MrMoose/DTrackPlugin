@@ -107,7 +107,7 @@ FRotator FDTrackPlugin::from_dtrack_rotation(const double (&n_matrix)[9]) {
 			break;
 	}
 
-	return r_adapted.Rotator();
+	return r_adapted.GetTransposed().Rotator();
 }
 
 std::string to_string(const FString &n_string) {
@@ -123,7 +123,7 @@ void FDTrackPlugin::StartupModule() {
 	m_trafo_normal.M[0][0] = 0; m_trafo_normal.M[0][1] = 1; m_trafo_normal.M[0][2] = 0; m_trafo_normal.M[0][3] = 0;
 	m_trafo_normal.M[1][0] = 1; m_trafo_normal.M[1][1] = 0; m_trafo_normal.M[1][2] = 0; m_trafo_normal.M[1][3] = 0;
 	m_trafo_normal.M[2][0] = 0; m_trafo_normal.M[2][1] = 0; m_trafo_normal.M[2][2] = 1; m_trafo_normal.M[2][3] = 0;
-	m_trafo_normal.M[3][0] = 0; m_trafo_normal.M[3][1] = 0; m_trafo_normal.M[3][2] = 0; m_trafo_normal.M[3][3] = -1;
+	m_trafo_normal.M[3][0] = 0; m_trafo_normal.M[3][1] = 0; m_trafo_normal.M[3][2] = 0; m_trafo_normal.M[3][3] = 1;
 
 	// transposed is cached
 	m_trafo_normal_transposed = m_trafo_normal.GetTransposed();
