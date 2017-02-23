@@ -189,10 +189,10 @@ void FDTrackPlugin::tick(const float n_delta_time, const UDTrackComponent *n_com
 		return;
 	}
 
-	// try to sav performance for DTrack2 protocol, which has a frame counter.
+	// try to save performance for DTrack2 protocol, which has a frame counter.
 	// why does DTrack not have that? Should be easy to implement...
 	if (m_dtrack2) {
-		unsigned int current_frame = m_dtrack->getMessageFrameNr();
+		unsigned int current_frame = m_dtrack->getFrameCounter();
 		if (m_last_seen_frame == current_frame) {
 			// no new data came in. I can safely bail
 			return;
@@ -364,7 +364,13 @@ void FDTrackPlugin::start_up(UDTrackComponent *n_client) {
 			m_dtrack.reset(new DTrackSDK(to_string(n_client->m_dtrack_server_ip), n_client->m_dtrack_server_port));
 			m_dtrack2 = true;
 		} else {
-			m_dtrack.reset(new DTrackSDK(to_string(n_client->m_dtrack_server_ip), 50105, n_client->m_dtrack_server_port));
+
+			// This is a purely passive case in which the port is not the one we contact at the server
+			// but the one that is opened locally, expecting data. The fact that we do this must be 
+			// actively configured at the device by the user.
+
+			m_dtrack.reset(new DTrackSDK(n_client->m_dtrack_server_port));
+			m_dtrack2 = false;
 		}
 
 		// take room calibration settings as well
@@ -390,8 +396,10 @@ void FDTrackPlugin::remove(class UDTrackComponent *n_client) {
 	});
 
 	if (m_dtrack && (m_clients.Num() == 0)) {
-		UE_LOG(DTrackPluginLog, Display, TEXT("Stopping DTrack measurement."));
-		m_dtrack->stopMeasurement();
+		if (m_dtrack2) {
+			UE_LOG(DTrackPluginLog, Display, TEXT("Stopping DTrack2 measurement."));
+			m_dtrack->stopMeasurement();
+		}
 		m_dtrack.reset();
 	}
 }
@@ -402,18 +410,23 @@ void FDTrackPlugin::begin_tracking() {
 		return;
 	} 
 
-	if (!m_dtrack->startMeasurement()) {
-		if (m_dtrack->getLastServerError() == DTrackSDK::ERR_TIMEOUT) {
-			UE_LOG(DTrackPluginLog, Error, TEXT("Could not start tracking, timeout"));
-		} else if (m_dtrack->getLastServerError() == DTrackSDK::ERR_NET) {
-			UE_LOG(DTrackPluginLog, Error, TEXT("Could not start tracking, network error"));
+	if (m_dtrack2) {
+		if (!m_dtrack->startMeasurement()) {
+			if (m_dtrack->getLastServerError() == DTrackSDK::ERR_TIMEOUT) {
+				UE_LOG(DTrackPluginLog, Error, TEXT("Could not start tracking, timeout"));
+			} else if (m_dtrack->getLastServerError() == DTrackSDK::ERR_NET) {
+				UE_LOG(DTrackPluginLog, Error, TEXT("Could not start tracking, network error"));
+			} else {
+				UE_LOG(DTrackPluginLog, Error, TEXT("Could not start tracking"));
+			}
+			m_tracking_active = false;
 		} else {
-			UE_LOG(DTrackPluginLog, Error, TEXT("Could not start tracking"));
+			m_tracking_active = true;
+			UE_LOG(DTrackPluginLog, Display, TEXT("Tracking started successfully"));
 		}
-		m_tracking_active = false;
 	} else {
 		m_tracking_active = true;
-		UE_LOG(DTrackPluginLog, Display, TEXT("Tracking started successfully"));
+		UE_LOG(DTrackPluginLog, Display, TEXT("Tracking in listen mode started successfully"));
 	}
 }
 
