@@ -36,7 +36,7 @@ class FDTrackPollThread : public FRunnable {
 
 	public:
 		FDTrackPollThread(const UDTrackComponent *n_client, FDTrackPlugin *n_plugin);
-		~FDTrackPollThread() noexcept;
+		~FDTrackPollThread();
 		
 		/** Singleton instance, can access the thread any time via static accessor
 		 */

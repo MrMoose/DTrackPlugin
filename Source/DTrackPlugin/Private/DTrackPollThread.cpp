@@ -90,7 +90,7 @@ FDTrackPollThread::FDTrackPollThread(const UDTrackComponent *n_client, FDTrackPl
 	m_thread = FRunnableThread::Create(this, TEXT("FDTrackPollThread"), 0, TPri_Normal);
 }
 
-FDTrackPollThread::~FDTrackPollThread() noexcept {
+FDTrackPollThread::~FDTrackPollThread() {
 
 	if (m_thread) {
 		delete m_thread;
