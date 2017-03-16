@@ -57,6 +57,22 @@ enum class EFingerType : uint8 {
 };
 
 /**
+ * This represents information about one tracked body
+ */
+USTRUCT(BlueprintType)
+struct FBody {
+
+	GENERATED_BODY()
+
+		UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Location"))
+		FVector  m_location;
+
+		UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Rotation"))
+		FRotator m_rotation;
+};
+
+
+/**
  * This represents one finger (guess which one) as tracked info come in
  */
 USTRUCT(BlueprintType)

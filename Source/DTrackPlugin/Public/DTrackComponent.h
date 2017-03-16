@@ -35,13 +35,6 @@ class DTRACKPLUGIN_API UDTrackComponent : public UActorComponent {
 
 	public:
 
-		// Callable Blueprint functions - Need to be defined for direct access
-		/**
-		 * Check if Vrpn Remote is enabled, if its not it will remain so until restart.
-		 */
-		UFUNCTION(BlueprintCallable, BlueprintPure, Category = DTrackFunctions)
-		bool IsRemoteEnabled();
-
 		UPROPERTY(EditAnywhere, meta = (DisplayName = "DTrack Server IP", ToolTip = "Enter the IP of your DTrack server host. Hostnames will not work."))
 		FString m_dtrack_server_ip = "127.0.0.1";
 
@@ -53,9 +46,6 @@ class DTRACKPLUGIN_API UDTrackComponent : public UActorComponent {
 
 		UPROPERTY(EditAnywhere, meta = (DisplayName = "DTrack Room Calibration", ToolTip = "Set this according to your DTrack system's room calibration"))
 		ECoordinateSystemType m_coordinate_system = ECoordinateSystemType::CST_Normal;
-
-		virtual void OnRegister() override;
-		virtual void OnUnregister() override;
 
 		virtual void TickComponent(float n_delta_time, enum ELevelTick n_tick_type, FActorComponentTickFunction *n_this_tick_function) override;
 

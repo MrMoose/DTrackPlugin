@@ -39,20 +39,6 @@ UDTrackComponent::UDTrackComponent(const FObjectInitializer &n_initializer)
  	PrimaryComponentTick.bCanEverTick = true;
 }
 
-void UDTrackComponent::OnRegister() {
-
-	Super::OnRegister();
-	
-
-}
-
-void UDTrackComponent::OnUnregister() {
-
-	Super::OnUnregister();
-
-
-}
-
 void UDTrackComponent::BeginPlay() {
 
 	Super::BeginPlay();
@@ -66,13 +52,8 @@ void UDTrackComponent::BeginPlay() {
 
 		m_plugin = &plugin;
 
+		// tell the plugin we exist and want to be called as data come in
 		m_plugin->start_up(this);
-
-		if (!m_plugin->IsRemoteEnabled()) {
-			UE_LOG(DTrackPluginLog, Warning, TEXT("Tracking could not be initialized"));
-		}
-
-		m_plugin->begin_tracking();
 
 	} else {
 		UE_LOG(DTrackPluginLog, Warning, TEXT("DTrack Plugin not available, cannot track this object"));
@@ -102,15 +83,6 @@ void UDTrackComponent::TickComponent(float n_delta_time, enum ELevelTick n_tick_
 	if (m_plugin) {
 		m_plugin->tick(n_delta_time, this);
 	}
-}
-
-//Functions forwards, required implementations
-bool UDTrackComponent::IsRemoteEnabled() {
-
-
-	return true;
-
-//	return DTrackIsRemoteEnabled();
 }
 
 

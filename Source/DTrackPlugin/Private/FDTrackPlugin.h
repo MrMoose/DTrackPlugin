@@ -26,13 +26,10 @@
 
 #pragma once
 
-#include <memory>
 #include <string>
 #include <vector>
 
 class DTrackSDK;
-
-std::string to_string(const FString &n_string);
 
 class FDTrackPlugin : public IDTrackPlugin {
 
@@ -44,22 +41,31 @@ class FDTrackPlugin : public IDTrackPlugin {
 		/** Manual looping, currently called in main thread */
 		void tick(const float n_delta_time, const UDTrackComponent *n_component);
 
-		/** Optional Public API For direct module bind */
-		bool IsRemoteEnabled();
-
-		/// start the tracking system
+		/// register this component with the tracking system
 		void start_up(class UDTrackComponent *n_client);
 
 		/// tell the plugin we're no longer interested in tracking data
 		void remove(class UDTrackComponent *n_client);
 
-		void begin_tracking();
-
 	private:
 		
+		friend class FDTrackPollThread;
+
+		/// polling thread injects data for later retrieval
+		/// call in game thread, not mutexed!
+		void inject_body_data(const int n_body_id, const FVector &n_translation, const FRotator &n_rotation);
+
+
+		TArray<FBody>     m_body_data;    //!< cached body data being injected by thread
+
+
+		class FDTrackPollThread *m_polling_thread = nullptr;
+
+			
 		/// consider the current frame's 6dof bodies and call the component if appropriate
 		void handle_bodies(UDTrackComponent *n_component);
 
+		/*
 		/// consider the current frame's flystick tracking and button and call the component if appropriate
 		void handle_flysticks(UDTrackComponent *n_component);
 	
@@ -69,21 +75,10 @@ class FDTrackPlugin : public IDTrackPlugin {
 		/// extract and hand out human model (mocap?) data
 		void handle_human_model(UDTrackComponent *n_component);
 
-		FVector from_dtrack_location(const double(&n_translation)[3]);
-		FRotator from_dtrack_rotation(const double(&n_matrix)[9]);
 
-		/// this is the DTrack SDK main object. I'll have one one owned here as Í do not know if they can coexist
-		std::unique_ptr< DTrackSDK > m_dtrack;
-		bool                         m_tracking_active = false;
-		bool                         m_dtrack2 = false;
-		ECoordinateSystemType        m_coordinate_system = ECoordinateSystemType::CST_Normal;
+		*/
 
-		/**
-		 * each frame will only cause the interface to be triggered once.
-		 * This only seems to work for DTrack2 though. DTrack gives null every frame
-		 * So it's only considered if m_dtrack2
-		 */
-		unsigned int                 m_last_seen_frame = 0;
+
 
 		/** 
 		 * each flystick gets its button states remembered here.
@@ -96,23 +91,5 @@ class FDTrackPlugin : public IDTrackPlugin {
 
 		/// only one of the client components will cause us to tick, so we don't do unnecessary frame ticks
 		TWeakObjectPtr<UDTrackComponent>           m_ticker;
-
-		/// room coordinate adoption matrix for "normal" setting
-		FMatrix     m_trafo_normal;
-
-		/// transposed variant cached
-		FMatrix     m_trafo_normal_transposed;
-
-		/// room coordinate adoption matrix for "power wall" setting
-		FMatrix     m_trafo_powerwall;
-
-		/// transposed variant cached
-		FMatrix     m_trafo_powerwall_transposed;
-
-		/// room coordinate adoption matrix for "unreal adapted" setting
-		FMatrix     m_trafo_unreal_adapted;
-
-		/// transposed variant cached
-		FMatrix     m_trafo_unreal_adapted_transposed;
 
 };

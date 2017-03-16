@@ -26,6 +26,9 @@
 
 #include "DTrackPluginPrivatePCH.h"
 
+#include "IDTrackPlugin.h"
+#include "DTrackPollThread.h"
+
 // this makes UBT allow windows types as (probably) used by the SDK header
 // @todo check if this is indeed the case and remove if not needed
 #include "AllowWindowsPlatformTypes.h" 
@@ -35,7 +38,6 @@
 // revert above allowed types to UBT default
 #include "HideWindowsPlatformTypes.h"
 
-#include "IDTrackPlugin.h"
 #include "FDTrackPlugin.h"
 
 IMPLEMENT_MODULE(FDTrackPlugin, DTrackPlugin)
@@ -44,125 +46,48 @@ DEFINE_LOG_CATEGORY(DTrackPluginLog);
 
 #define LOCTEXT_NAMESPACE "DTrackPlugin"
 
-#define PLUGIN_VERSION "0.1.0"
+#define PLUGIN_VERSION "0.2.0"
 
-// translate a DTrack body location (translation in mm) into Unreal Location (in cm)
-FVector FDTrackPlugin::from_dtrack_location(const double(&n_translation)[3]) {
-
-	FVector ret;
-
-	// DTrack coordinates come in mm with either Z or Y being up, which has to be configured by the user.
-	// I translate to Unreal's Z being up and cm units.
-	
-	switch (m_coordinate_system) {
-		default:
-		case ECoordinateSystemType::CST_Normal:
-			ret.X =  n_translation[1] / 10.0;
-			ret.Y =  n_translation[0] / 10.0;
-			ret.Z =  n_translation[2] / 10.0;
-			break;
-		case ECoordinateSystemType::CST_Unreal_Adapted:
-			ret.X =  n_translation[0] / 10.0;
-			ret.Y = -n_translation[1] / 10.0;
-			ret.Z =  n_translation[2] / 10.0;
-			break;
-		case ECoordinateSystemType::CST_Powerwall:
-			ret.X = -n_translation[2] / 10.0;
-			ret.Y =  n_translation[0] / 10.0;
-			ret.Z =  n_translation[1] / 10.0;
-			break;
-	}
-
-	return ret;
-}
-
-// translate a DTrack 3x3 rotation matrix (translation in mm) into Unreal Location (in cm)
-FRotator FDTrackPlugin::from_dtrack_rotation(const double (&n_matrix)[9]) {
-
-	// take DTrack matrix and put the values into FMatrix 
-	// ( M[RowIndex][ColumnIndex], DTrack matrix comes column-wise )
-	FMatrix r;
-	r.M[0][0] = n_matrix[0 + 0]; r.M[0][1] = n_matrix[0 + 3]; r.M[0][2] = n_matrix[0 + 6]; r.M[0][3] = 0.0;
-	r.M[1][0] = n_matrix[1 + 0]; r.M[1][1] = n_matrix[1 + 3]; r.M[1][2] = n_matrix[1 + 6]; r.M[1][3] = 0.0;
-	r.M[2][0] = n_matrix[2 + 0]; r.M[2][1] = n_matrix[2 + 3]; r.M[2][2] = n_matrix[2 + 6]; r.M[2][3] = 0.0;
-	r.M[3][0] =             0.0; r.M[3][1] =             0.0; r.M[3][2] =             0.0; r.M[3][3] = 1.0;
-
-	FMatrix r_adapted;
-
-	switch (m_coordinate_system) {
-		default:
-		case ECoordinateSystemType::CST_Normal:
-
-			r_adapted = m_trafo_normal * r * m_trafo_normal_transposed;
-			break;
-	
-		case ECoordinateSystemType::CST_Unreal_Adapted:
-
-			r_adapted = m_trafo_unreal_adapted * r * m_trafo_unreal_adapted_transposed;
-			break;
-
-		case ECoordinateSystemType::CST_Powerwall:
-
-			r_adapted = m_trafo_powerwall * r * m_trafo_powerwall_transposed;
-			break;
-	}
-
-	return r_adapted.GetTransposed().Rotator();
-}
-
-std::string to_string(const FString &n_string) {
-
-	return TCHAR_TO_UTF8(*n_string);
-}
 
 void FDTrackPlugin::StartupModule() {
 	
 	UE_LOG(DTrackPluginLog, Log, TEXT("Using DTrack Plugin version %s"), TEXT(PLUGIN_VERSION));
 
-	// This is the rotation matrix for coordinate adoption mode "normal"
-	m_trafo_normal.M[0][0] = 0; m_trafo_normal.M[0][1] = 1; m_trafo_normal.M[0][2] = 0; m_trafo_normal.M[0][3] = 0;
-	m_trafo_normal.M[1][0] = 1; m_trafo_normal.M[1][1] = 0; m_trafo_normal.M[1][2] = 0; m_trafo_normal.M[1][3] = 0;
-	m_trafo_normal.M[2][0] = 0; m_trafo_normal.M[2][1] = 0; m_trafo_normal.M[2][2] = 1; m_trafo_normal.M[2][3] = 0;
-	m_trafo_normal.M[3][0] = 0; m_trafo_normal.M[3][1] = 0; m_trafo_normal.M[3][2] = 0; m_trafo_normal.M[3][3] = 1;
-
-	// transposed is cached
-	m_trafo_normal_transposed = m_trafo_normal.GetTransposed();
-	
-	// This is the rotation matrix for coordinate adoption mode "power wall"
-	m_trafo_powerwall.M[0][0] = 0; m_trafo_powerwall.M[0][1] = 0; m_trafo_powerwall.M[0][2] = -1; m_trafo_powerwall.M[0][3] = 0;
-	m_trafo_powerwall.M[1][0] = 1; m_trafo_powerwall.M[1][1] = 0; m_trafo_powerwall.M[1][2] = 0; m_trafo_powerwall.M[1][3] = 0;
-	m_trafo_powerwall.M[2][0] = 0; m_trafo_powerwall.M[2][1] = 1; m_trafo_powerwall.M[2][2] = 0; m_trafo_powerwall.M[2][3] = 0;
-	m_trafo_powerwall.M[3][0] = 0; m_trafo_powerwall.M[3][1] = 0; m_trafo_powerwall.M[3][2] = 0; m_trafo_powerwall.M[3][3] = 1;
-
-	// transposed is cached
-	m_trafo_powerwall_transposed = m_trafo_powerwall.GetTransposed();
-	
-	// This is the rotation matrix for coordinate adoption mode "unreal adapted"
-	m_trafo_unreal_adapted.M[0][0] = 1; m_trafo_unreal_adapted.M[0][1] = 0; m_trafo_unreal_adapted.M[0][2] = 0; m_trafo_unreal_adapted.M[0][3] = 0;
-	m_trafo_unreal_adapted.M[1][0] = 0; m_trafo_unreal_adapted.M[1][1] = -1; m_trafo_unreal_adapted.M[1][2] = 0; m_trafo_unreal_adapted.M[1][3] = 0;
-	m_trafo_unreal_adapted.M[2][0] = 0; m_trafo_unreal_adapted.M[2][1] = 0; m_trafo_unreal_adapted.M[2][2] = 1; m_trafo_unreal_adapted.M[2][3] = 0;
-	m_trafo_unreal_adapted.M[3][0] = 0; m_trafo_unreal_adapted.M[3][1] = 0; m_trafo_unreal_adapted.M[3][2] = 0; m_trafo_unreal_adapted.M[3][3] = 1;
-
-	// transposed is cached
-	m_trafo_unreal_adapted_transposed = m_trafo_unreal_adapted.GetTransposed();
 }
 
 void FDTrackPlugin::ShutdownModule() {
 	
-	m_dtrack.reset();
 }
 
-bool FDTrackPlugin::IsRemoteEnabled() {
+void FDTrackPlugin::start_up(UDTrackComponent *n_client) {
 
-	// @todo implement
-	
-	return m_dtrack->isLocalDataPortValid();
+	if (!m_polling_thread) {
+		m_polling_thread = FDTrackPollThread::start(n_client, this);
+	}
+
+	// on error, the object is created but an error condition set within
+	m_clients.Add(n_client);
+}
+
+
+void FDTrackPlugin::remove(class UDTrackComponent *n_client) {
+
+	m_clients.RemoveAll([&](const TWeakObjectPtr<UDTrackComponent> p) {
+		return p.Get() == n_client;
+	});
+
+	// we have no reason to run anymore
+	if (m_polling_thread && (m_clients.Num() == 0)) {	
+		m_polling_thread->interrupt();
+		m_polling_thread->join();
+		delete m_polling_thread;
+		m_polling_thread = nullptr;
+	}
 }
 
 void FDTrackPlugin::tick(const float n_delta_time, const UDTrackComponent *n_component) {
 
-	if (!m_dtrack || !m_tracking_active) {
-		UE_LOG(DTrackPluginLog, Warning, TEXT("Erraneous plugin tick ignored."));
+	if (!m_polling_thread) {
 		return;
 	}
 	
@@ -183,24 +108,6 @@ void FDTrackPlugin::tick(const float n_delta_time, const UDTrackComponent *n_com
 		return;
 	}
 
-	// receive pending datagrams
-	if (!m_dtrack->receive()) {
-		UE_LOG(DTrackPluginLog, Warning, TEXT("Receiving DTrack data failed."));
-		return;
-	}
-
-	// try to save performance for DTrack2 protocol, which has a frame counter.
-	// why does DTrack not have that? Should be easy to implement...
-	if (m_dtrack2) {
-		unsigned int current_frame = m_dtrack->getFrameCounter();
-		if (m_last_seen_frame == current_frame) {
-			// no new data came in. I can safely bail
-			return;
-		} else {
-			m_last_seen_frame = current_frame;
-		}
-	}
-
 	// iterate all registered components and call the interface methods upon them
 	for (TWeakObjectPtr<UDTrackComponent> c : m_clients) {
 		// components might get killed and created along the way.
@@ -209,30 +116,33 @@ void FDTrackPlugin::tick(const float n_delta_time, const UDTrackComponent *n_com
 		if (component) {
 			// now handle the different tracking types by calling the component
 			handle_bodies(component);
-			handle_flysticks(component);
-			handle_fingers(component);
-			handle_human_model(component);
+
+// 			handle_flysticks(component);
+// 			handle_fingers(component);
+// 			handle_human_model(component);
 		}
 	}
+}
+
+void FDTrackPlugin::inject_body_data(const int n_body_id, const FVector &n_translation, const FRotator &n_rotation) {
+
+	if (m_body_data.Num() < (n_body_id + 1)) {
+		m_body_data.SetNumZeroed(n_body_id + 1, false);
+	}
+
+	m_body_data[n_body_id].m_location = n_translation;
+	m_body_data[n_body_id].m_rotation = n_rotation;
 }
 
 void FDTrackPlugin::handle_bodies(UDTrackComponent *n_component) {
 
-	const DTrack_Body_Type_d *body = nullptr;
-	for (int i = 0; i < m_dtrack->getNumBody(); i++) {  // why do people still use int for those counters?
-		body = m_dtrack->getBody(i);
-		checkf(body, TEXT("DTrack API error, body address null"));
-
-		if (body->quality > 0) {
-			// Quality below zero means the body is not visible to the system right now. I won't call the interface
-
-			FVector translation = from_dtrack_location(body->loc);
-			FRotator rotation = from_dtrack_rotation(body->rot);
-
-			n_component->body_tracking(body->id, translation, rotation);
-		}
+	for (int32 i = 0; i < m_body_data.Num(); i++) {
+		n_component->body_tracking(i, m_body_data[i].m_location, m_body_data[i].m_rotation);
 	}
 }
+
+
+/*
 
 void FDTrackPlugin::handle_flysticks(UDTrackComponent *n_component) {
 
@@ -349,85 +259,8 @@ void FDTrackPlugin::handle_human_model(UDTrackComponent *n_component) {
 		n_component->human_model(human->id, joints);
 	}
 }
-
-void FDTrackPlugin::start_up(UDTrackComponent *n_client) {
-
-	m_tracking_active = false;
-
-	if (!m_dtrack) {
-		// There appears to be several glitches in the SDK's constructor.
-		// Most notably its missing ability to distinct between DTrack and DTrack2 protocols.
-		// Also it looks like it cannot resolve hostnames and must be given an IP.
-
-		// @todo clarify this with ART. DTrack Recorder only supports DTrack protocol and there's no way of knowing for sure.
-		if (n_client->m_dtrack_2) {			
-			m_dtrack.reset(new DTrackSDK(to_string(n_client->m_dtrack_server_ip), n_client->m_dtrack_server_port));
-			m_dtrack2 = true;
-		} else {
-
-			// This is a purely passive case in which the port is not the one we contact at the server
-			// but the one that is opened locally, expecting data. The fact that we do this must be 
-			// actively configured at the device by the user.
-
-			m_dtrack.reset(new DTrackSDK(n_client->m_dtrack_server_port));
-			m_dtrack2 = false;
-		}
-
-		// take room calibration settings as well
-		m_coordinate_system = n_client->m_coordinate_system;
-
-		// I don't know when this can occur but I guess it's client
-		// port collision with fixed UDP ports
-		if (!m_dtrack->isLocalDataPortValid()) {
-			m_dtrack.reset();
-			return;
-		}
-	}
-
-	// on error, the object is created but an error condition set within
-	m_clients.Add(n_client);
-}
+*/
 
 
-void FDTrackPlugin::remove(class UDTrackComponent *n_client) {
-
-	m_clients.RemoveAll([&](const TWeakObjectPtr<UDTrackComponent> p) {
-		return p.Get() == n_client;
-	});
-
-	if (m_dtrack && (m_clients.Num() == 0)) {
-		if (m_dtrack2) {
-			UE_LOG(DTrackPluginLog, Display, TEXT("Stopping DTrack2 measurement."));
-			m_dtrack->stopMeasurement();
-		}
-		m_dtrack.reset();
-	}
-}
-
-void FDTrackPlugin::begin_tracking() {
-
-	if (!m_dtrack) {
-		return;
-	} 
-
-	if (m_dtrack2) {
-		if (!m_dtrack->startMeasurement()) {
-			if (m_dtrack->getLastServerError() == DTrackSDK::ERR_TIMEOUT) {
-				UE_LOG(DTrackPluginLog, Error, TEXT("Could not start tracking, timeout"));
-			} else if (m_dtrack->getLastServerError() == DTrackSDK::ERR_NET) {
-				UE_LOG(DTrackPluginLog, Error, TEXT("Could not start tracking, network error"));
-			} else {
-				UE_LOG(DTrackPluginLog, Error, TEXT("Could not start tracking"));
-			}
-			m_tracking_active = false;
-		} else {
-			m_tracking_active = true;
-			UE_LOG(DTrackPluginLog, Display, TEXT("Tracking started successfully"));
-		}
-	} else {
-		m_tracking_active = true;
-		UE_LOG(DTrackPluginLog, Display, TEXT("Tracking in listen mode started successfully"));
-	}
-}
 
 #undef LOCTEXT_NAMESPACE
