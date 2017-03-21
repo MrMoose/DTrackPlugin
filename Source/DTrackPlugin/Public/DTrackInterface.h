@@ -34,7 +34,7 @@
  * and transformations will be translated into Unreal's standard coordinate 
  * system
  */
-UENUM(BlueprintType)
+UENUM(BlueprintType, Category=DTrack)
 enum class ECoordinateSystemType : uint8 {
 
 	/// The normal setting. Right handed, Z is up and Y is front 
@@ -71,6 +71,26 @@ struct FBody {
 		FRotator m_rotation;
 };
 
+/**
+ * This represents information about one tracked flystick
+ */
+USTRUCT(BlueprintType)
+struct FFlystick {
+
+	GENERATED_BODY()
+
+		UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Location"))
+		FVector  m_location;
+
+		UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Rotation"))
+		FRotator m_rotation;
+
+		UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "ButtonState"))
+		TArray<int> m_button_states;
+
+		UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "JoystickState"))
+		TArray<float> m_joystick_states;
+};
 
 /**
  * This represents one finger (guess which one) as tracked info come in
@@ -113,6 +133,28 @@ struct FFinger {
 
 
 /**
+* This represents one finger (guess which one) as tracked info come in
+*/
+USTRUCT(BlueprintType, Category=DTrack)
+struct FHand {
+
+	GENERATED_BODY()
+
+		/// true if this is the right hand
+		UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Right"))
+		bool m_right;
+
+		UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Location"))
+		FVector  m_location;
+
+		UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Rotation"))
+		FRotator m_rotation;
+
+		UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Fingers"))
+		TArray<FFinger> m_fingers;
+};
+
+/**
  * This represents one joint of human model tracking.
  */
 USTRUCT(BlueprintType)
@@ -138,6 +180,18 @@ struct FJoint {
 	TArray<float> m_angles;
 };
 
+
+/**
+ * This represents one human model.
+ */
+USTRUCT(BlueprintType)
+struct FHuman {
+
+	GENERATED_BODY()
+
+		UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Joints"))
+		TArray<FJoint> m_joints;
+};
 
 
 

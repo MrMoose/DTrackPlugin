@@ -28,16 +28,6 @@
 
 #include "IDTrackPlugin.h"
 #include "DTrackPollThread.h"
-
-// this makes UBT allow windows types as (probably) used by the SDK header
-// @todo check if this is indeed the case and remove if not needed
-#include "AllowWindowsPlatformTypes.h" 
-
-#include "DTrackSDK.hpp"
-
-// revert above allowed types to UBT default
-#include "HideWindowsPlatformTypes.h"
-
 #include "FDTrackPlugin.h"
 
 IMPLEMENT_MODULE(FDTrackPlugin, DTrackPlugin)
@@ -51,12 +41,23 @@ DEFINE_LOG_CATEGORY(DTrackPluginLog);
 
 void FDTrackPlugin::StartupModule() {
 	
-	UE_LOG(DTrackPluginLog, Log, TEXT("Using DTrack Plugin version %s"), TEXT(PLUGIN_VERSION));
+	UE_LOG(DTrackPluginLog, Log, TEXT("Using DTrack Plugin, threaded version %s"), TEXT(PLUGIN_VERSION));
 
 }
 
 void FDTrackPlugin::ShutdownModule() {
-	
+
+	// Another wait for potential asyncs. 
+	// Should be able to catch them but don't know how
+	FPlatformProcess::Sleep(0.1);
+
+	// we should have been stopped but what can you do?
+	if (m_polling_thread) {
+		m_polling_thread->interrupt();
+		m_polling_thread->join();
+		delete m_polling_thread;
+		m_polling_thread = nullptr;
+	}
 }
 
 void FDTrackPlugin::start_up(UDTrackComponent *n_client) {
@@ -68,7 +69,6 @@ void FDTrackPlugin::start_up(UDTrackComponent *n_client) {
 	// on error, the object is created but an error condition set within
 	m_clients.Add(n_client);
 }
-
 
 void FDTrackPlugin::remove(class UDTrackComponent *n_client) {
 
@@ -116,14 +116,17 @@ void FDTrackPlugin::tick(const float n_delta_time, const UDTrackComponent *n_com
 		if (component) {
 			// now handle the different tracking types by calling the component
 			handle_bodies(component);
-
-// 			handle_flysticks(component);
-// 			handle_fingers(component);
-// 			handle_human_model(component);
+			handle_flysticks(component);
+			handle_hands(component);
+			handle_human_model(component);
 		}
 	}
 }
 
+/************************************************************************/
+/* Injection routines                                                   */
+/* Called as lambdas from polling thread, executed in game thread       */
+/************************************************************************/
 void FDTrackPlugin::inject_body_data(const int n_body_id, const FVector &n_translation, const FRotator &n_rotation) {
 
 	if (m_body_data.Num() < (n_body_id + 1)) {
@@ -134,6 +137,43 @@ void FDTrackPlugin::inject_body_data(const int n_body_id, const FVector &n_trans
 	m_body_data[n_body_id].m_rotation = n_rotation;
 }
 
+void FDTrackPlugin::inject_flystick_data(const int n_flystick_id, const FVector &n_translation, const FRotator &n_rotation, const TArray<int> &n_button_state, const TArray<float> &n_joystick_state) {
+
+	if (m_flystick_data.Num() < (n_flystick_id + 1)) {
+		m_flystick_data.SetNumZeroed(n_flystick_id + 1, false);
+	}
+
+	m_flystick_data[n_flystick_id].m_location = n_translation;
+	m_flystick_data[n_flystick_id].m_rotation = n_rotation;
+	m_flystick_data[n_flystick_id].m_button_states = n_button_state;
+	m_flystick_data[n_flystick_id].m_joystick_states = n_joystick_state;
+}
+
+void FDTrackPlugin::inject_hand_data(const int n_hand_id, const bool &n_right, const FVector &n_translation, const FRotator &n_rotation, const TArray<FFinger> &n_fingers) {
+
+	if (m_hand_data.Num() < (n_hand_id + 1)) {
+		m_hand_data.SetNumZeroed(n_hand_id + 1, false);
+	}
+
+	m_hand_data[n_hand_id].m_right = n_right;
+	m_hand_data[n_hand_id].m_location = n_translation;
+	m_hand_data[n_hand_id].m_rotation = n_rotation;
+	m_hand_data[n_hand_id].m_fingers = n_fingers;
+}
+
+void FDTrackPlugin::inject_human_model_data(const int n_human_id, const TArray<FJoint> &n_joints) {
+	
+	if (m_human_model_data.Num() < (n_human_id + 1)) {
+		m_human_model_data.SetNumZeroed(n_human_id + 1, false);
+	}
+
+	m_human_model_data[n_human_id].m_joints = n_joints;
+}
+
+/************************************************************************/
+/* Handler methods. Called in game thread tick                          */
+/* to relay information to components                                   */
+/************************************************************************/
 void FDTrackPlugin::handle_bodies(UDTrackComponent *n_component) {
 
 	for (int32 i = 0; i < m_body_data.Num(); i++) {
@@ -141,126 +181,64 @@ void FDTrackPlugin::handle_bodies(UDTrackComponent *n_component) {
 	}
 }
 
-
-/*
-
 void FDTrackPlugin::handle_flysticks(UDTrackComponent *n_component) {
 
-	const DTrack_FlyStick_Type_d *flystick = nullptr;
-	for (int i = 0; i < m_dtrack->getNumFlyStick(); i++) {
-		flystick = m_dtrack->getFlyStick(i);
-		checkf(flystick, TEXT("DTrack API error, flystick address null"));
+	// treat all flysticks
+	for (int32 i = 0; i < m_flystick_data.Num(); i++) {
 
-		if (flystick->quality > 0) {
-			// Quality below zero means the body is not visible to the system right now. I won't call the interface
-			FVector translation = from_dtrack_location(flystick->loc);
-			FRotator rotation = from_dtrack_rotation(flystick->rot);
-			n_component->flystick_tracking(flystick->id, translation, rotation);
-		}
+		FFlystick &flystick = m_flystick_data[i];
 
-		// Now let's see if we already have a state vector for this flystick's buttons
-		if (m_flystick_buttons.size() < (flystick->id + 1)) {
-			// vector too small, insert new empties to pad
-			std::vector<int> new_stick;
-			new_stick.resize(DTRACKSDK_FLYSTICK_MAX_BUTTON, 0);
-			m_flystick_buttons.resize(flystick->id + 1, new_stick);
-		}
+		// tracking first, it's always called
+		n_component->flystick_tracking(i, flystick.m_location, flystick.m_rotation);
 
-		std::vector<int> &current_stick = m_flystick_buttons[flystick->id];
+		if (flystick.m_button_states.Num()) {
+			// compare button states with the last seen state, calling button handlers if appropriate
 
-		// have to go through all the button states now to figure out which ones have differed
-		for (int button_idx = 0; button_idx < flystick->num_button; button_idx++) {
-			if (flystick->button[button_idx] != current_stick[button_idx]) {
-				// if the button has changed state, call the interface and remember current state.
-				current_stick[button_idx] = flystick->button[button_idx];
-				n_component->flystick_button(flystick->id, button_idx, (flystick->button[button_idx] == 1));
+			// See if we have to resize our actual state vector to accommodate this.
+			if (m_last_button_states.size() < (i + 1)) {
+				// vector too small, insert new empties to pad
+				TArray<int> new_stick;
+				new_stick.SetNumZeroed(DTRACKSDK_FLYSTICK_MAX_BUTTON);
+				m_last_button_states.resize(i + 1, new_stick);
+			}
+			
+			const TArray<int> &current_states = flystick.m_button_states;
+			TArray<int> &last_states = m_last_button_states[i];
+
+			// have to go through all the button states now to figure out which ones have differed
+			for (int32 b = 0; b < current_states.Num(); b++) {
+				if (current_states[b] != last_states[b]) {
+					last_states[b] = current_states[b];
+					n_component->flystick_button(i, b, (current_states[b] == 1));
+				}
 			}
 		}
 
-		// have to go through all the joysticks, assemble their values and call the collected interface
-		TArray<float> joysticks;  // have to use float as blueprints don't support TArray<double>
-		joysticks.AddZeroed(flystick->num_joystick);
-		for (int joystick_idx = 0; joystick_idx < flystick->num_joystick; joystick_idx++) {
-			joysticks[joystick_idx] = static_cast<float>(flystick->joystick[joystick_idx]);
+		// Call joysticks if we have 'em
+		if (flystick.m_joystick_states.Num()) {
+			n_component->flystick_joystick(i, flystick.m_joystick_states);
 		}
-
-		if (joysticks.Num()) {
-			n_component->flystick_joystick(flystick->id, joysticks);
-		}
-
-		// that's it. Flystick all done.
 	}
+
+	// that's it. Flystick all done.
 }
 
-void FDTrackPlugin::handle_fingers(UDTrackComponent *n_component) {
+void FDTrackPlugin::handle_hands(UDTrackComponent *n_component) {
 
-	const DTrack_Hand_Type_d *hand = nullptr;
-	for (int i = 0; i < m_dtrack->getNumHand(); i++) {
-		hand = m_dtrack->getHand(i);
-		checkf(hand, TEXT("DTrack API error, hand address is null"));
-
-		if (hand->quality > 0) {
-			FVector translation = from_dtrack_location(hand->loc);
-			FRotator rotation = from_dtrack_rotation(hand->rot);
-			TArray<FFinger> fingers;
-
-			for (int j = 0; j < hand->nfinger; j++) {
-				FFinger finger;
-				switch (j) {     // this is mostly to allow for the blueprint to be a 
-								 // little more expressive than using assumptions about the index' meaning
-					case 0: finger.m_type = EFingerType::FT_Thumb; break;
-					case 1: finger.m_type = EFingerType::FT_Index; break;
-					case 2: finger.m_type = EFingerType::FT_Middle; break;
-					case 3: finger.m_type = EFingerType::FT_Ring; break;
-					case 4: finger.m_type = EFingerType::FT_Pinky; break;
-				}
-
-				finger.m_location = from_dtrack_location(hand->finger[j].loc);
-				finger.m_rotation = from_dtrack_rotation(hand->finger[j].rot);
-				finger.m_tip_radius = hand->finger[j].radiustip;
-				finger.m_inner_phalanx_length = hand->finger[j].lengthphalanx[2];
-				finger.m_middle_phalanx_length = hand->finger[j].lengthphalanx[1];
-				finger.m_outer_phalanx_length = hand->finger[j].lengthphalanx[0];
-				finger.m_inner_middle_phalanx_angle = hand->finger[j].anglephalanx[1];
-				finger.m_middle_outer_phalanx_angle = hand->finger[j].anglephalanx[0];
-				fingers.Add(std::move(finger));
-			}
-
-			n_component->hand_tracking(hand->id, (hand->lr == 1), translation, rotation, fingers);
-		}
+	// treat all tracked hands
+	for (int32 i = 0; i < m_hand_data.Num(); i++) {
+		const FHand &hand = m_hand_data[i];
+		n_component->hand_tracking(i, hand.m_right, hand.m_location, hand.m_rotation, hand.m_fingers);
 	}
 }
 
 void FDTrackPlugin::handle_human_model(UDTrackComponent *n_component) {
 	
-	const DTrack_Human_Type_d *human = nullptr;
-	for (int i = 0; i < m_dtrack->getNumHuman(); i++) {
-		human = m_dtrack->getHuman(i);
-		checkf(human, TEXT("DTrack API error, human address is null"));
-
-		TArray<FJoint> joints;
-
-		for (int j = 0; j < human->num_joints; j++) {
-			FJoint joint;
-			// I'm not sure if I should check for quality as I don't know if the caller
-			// would expect number and order of joints to be relevant/constant.
-			// They do carry an ID though so I suppose the caller must be aware of that.
-			if (human->joint[j].quality > 0.1) {
-				joint.m_id = human->joint[j].id;
-				joint.m_location = from_dtrack_location(human->joint[j].loc);
-				joint.m_rotation = from_dtrack_rotation(human->joint[j].rot);
-				joint.m_angles.Add(human->joint[j].ang[0]);   // well, are they Euler angles of the same rot as above or not?
-				joint.m_angles.Add(human->joint[j].ang[1]);
-				joint.m_angles.Add(human->joint[j].ang[2]);
-				joints.Add(std::move(joint));
-			}
-		}
-
-		n_component->human_model(human->id, joints);
+	// treat all tracked hands
+	for (int32 i = 0; i < m_human_model_data.Num(); i++) {
+		const FHuman &human = m_human_model_data[i];
+		n_component->human_model(i, human.m_joints);
 	}
 }
-*/
-
-
 
 #undef LOCTEXT_NAMESPACE

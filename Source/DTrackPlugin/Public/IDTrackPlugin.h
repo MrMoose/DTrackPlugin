@@ -58,7 +58,6 @@ class IDTrackPlugin : public IModuleInterface {
 			return FModuleManager::Get().IsModuleLoaded( "DTrackPlugin" );
 		}
 
-	
 		/** 
 		 * Initialize internal structures with component as client
 		 * Will setup and connect internal SDK and connect it to the server and port

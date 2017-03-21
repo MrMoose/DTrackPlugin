@@ -48,8 +48,6 @@ class DTRACKPLUGIN_API UDTrackComponent : public UActorComponent {
 		ECoordinateSystemType m_coordinate_system = ECoordinateSystemType::CST_Normal;
 
 		virtual void TickComponent(float n_delta_time, enum ELevelTick n_tick_type, FActorComponentTickFunction *n_this_tick_function) override;
-
-
 		virtual void BeginPlay() override;
 		virtual void EndPlay(const EEndPlayReason::Type n_reason) override;
 

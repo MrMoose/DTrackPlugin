@@ -26,10 +26,7 @@
 
 #pragma once
 
-#include <string>
 #include <vector>
-
-class DTrackSDK;
 
 class FDTrackPlugin : public IDTrackPlugin {
 
@@ -51,13 +48,27 @@ class FDTrackPlugin : public IDTrackPlugin {
 		
 		friend class FDTrackPollThread;
 
-		/// polling thread injects data for later retrieval
+		/// polling thread injects body tracking data for later retrieval
 		/// call in game thread, not mutexed!
 		void inject_body_data(const int n_body_id, const FVector &n_translation, const FRotator &n_rotation);
 
+		/// polling thread injects flystick data for later retrieval
+		void inject_flystick_data(const int n_flystick_id, const FVector &n_translation, const FRotator &n_rotation,
+					const TArray<int> &n_button_state, const TArray<float> &n_joystick_state);
 
-		TArray<FBody>     m_body_data;    //!< cached body data being injected by thread
+		/// polling thread injects hand tracking data for later retrieval
+		void inject_hand_data(const int n_hand_id, const bool &n_right, const FVector &n_translation, 
+					const FRotator &n_rotation, const TArray<FFinger> &n_fingers);
 
+		/// polling thread injects hand tracking data for later retrieval
+		void inject_human_model_data(const int n_human_id, const TArray<FJoint> &n_joints);
+
+		TArray<FBody>        m_body_data;          //!< cached body data being injected by thread
+		TArray<FFlystick>    m_flystick_data;      //!< cached flystick tracking info
+		TArray<FHand>        m_hand_data;          //!< cached hand tracking info
+		TArray<FHuman>       m_human_model_data;   //!< cached human model info
+
+		std::vector< TArray<int> > m_last_button_states;
 
 		class FDTrackPollThread *m_polling_thread = nullptr;
 
@@ -65,26 +76,14 @@ class FDTrackPlugin : public IDTrackPlugin {
 		/// consider the current frame's 6dof bodies and call the component if appropriate
 		void handle_bodies(UDTrackComponent *n_component);
 
-		/*
 		/// consider the current frame's flystick tracking and button and call the component if appropriate
 		void handle_flysticks(UDTrackComponent *n_component);
 	
 		/// treat everything hand and finger tracking relevant
-		void handle_fingers(UDTrackComponent *n_component);
+		void handle_hands(UDTrackComponent *n_component);
 
 		/// extract and hand out human model (mocap?) data
 		void handle_human_model(UDTrackComponent *n_component);
-
-
-		*/
-
-
-
-		/** 
-		 * each flystick gets its button states remembered here.
-		 * flystick's ID is index in vector
-		 */
-		std::vector< std::vector<int> > m_flystick_buttons;
 
 		/// each DTrack component registers itself here and gets called every tick
 		TArray< TWeakObjectPtr<UDTrackComponent> > m_clients;

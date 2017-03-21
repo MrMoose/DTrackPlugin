@@ -127,8 +127,6 @@ bool FDTrackPollThread::Init() {
 	return true;
 }
 
-
-
 // 1 is success
 // 0 is failure
 uint32 FDTrackPollThread::Run() {
@@ -165,13 +163,14 @@ uint32 FDTrackPollThread::Run() {
 
 	// now go looping until Stop() increases the stop condition
 	while (!m_stop_counter.GetValue()) {
-
 		// receive as much as we can
 		if (m_dtrack->receive()) {
 
-			// treat body info and cache results into plugin
+			// treat body info and cache results into plug-in
 			handle_bodies();
-
+			handle_flysticks();
+			handle_hands();
+			handle_human_model();
 		}
 	}
 
@@ -217,7 +216,113 @@ void FDTrackPollThread::handle_bodies() {
 	}
 }
 
+void FDTrackPollThread::handle_flysticks() {
 
+	const DTrack_FlyStick_Type_d *flystick = nullptr;
+	for (int i = 0; i < m_dtrack->getNumFlyStick(); i++) {
+		flystick = m_dtrack->getFlyStick(i);
+		checkf(flystick, TEXT("DTrack API error, flystick address null"));
+
+		if (flystick->quality > 0) {
+			// Quality below zero means the body is not visible to the system right now. I won't call the interface
+			FVector translation = from_dtrack_location(flystick->loc);
+			FRotator rotation = from_dtrack_rotation(flystick->rot);
+
+			// create a state vector for the button states
+			TArray<int> buttons;
+			buttons.SetNumZeroed(flystick->num_button);
+			for (int idx = 0; idx < flystick->num_button; idx++) {
+				buttons[idx] = flystick->button[idx];
+			}
+
+			// create a state vector for the joystick states
+			TArray<float> joysticks;  // have to use float as blueprints don't support TArray<double>
+			joysticks.SetNumZeroed(flystick->num_joystick);
+			for (int idx = 0; idx < flystick->num_joystick; idx++) {
+				joysticks[idx] = static_cast<float>(flystick->joystick[idx]);
+			}
+
+			// will execute injection in game thread
+			AsyncTask(ENamedThreads::GameThread, [=, id = flystick->id, plugin = m_plugin]() {
+				plugin->inject_flystick_data(id, translation, rotation, buttons, joysticks);
+			});
+		}
+	}
+}
+
+void FDTrackPollThread::handle_hands() {
+
+	const DTrack_Hand_Type_d *hand = nullptr;
+	for (int i = 0; i < m_dtrack->getNumHand(); i++) {
+		hand = m_dtrack->getHand(i);
+		checkf(hand, TEXT("DTrack API error, hand address is null"));
+
+		if (hand->quality > 0) {
+			FVector translation = from_dtrack_location(hand->loc);
+			FRotator rotation = from_dtrack_rotation(hand->rot);
+			TArray<FFinger> fingers;
+
+			for (int j = 0; j < hand->nfinger; j++) {
+				FFinger finger;
+				switch (j) {     // this is mostly to allow for the blueprint to be a 
+								 // little more expressive than using assumptions about the index' meaning
+					case 0: finger.m_type = EFingerType::FT_Thumb; break;
+					case 1: finger.m_type = EFingerType::FT_Index; break;
+					case 2: finger.m_type = EFingerType::FT_Middle; break;
+					case 3: finger.m_type = EFingerType::FT_Ring; break;
+					case 4: finger.m_type = EFingerType::FT_Pinky; break;
+				}
+
+				finger.m_location = from_dtrack_location(hand->finger[j].loc);
+				finger.m_rotation = from_dtrack_rotation(hand->finger[j].rot);
+				finger.m_tip_radius = hand->finger[j].radiustip;
+				finger.m_inner_phalanx_length = hand->finger[j].lengthphalanx[2];
+				finger.m_middle_phalanx_length = hand->finger[j].lengthphalanx[1];
+				finger.m_outer_phalanx_length = hand->finger[j].lengthphalanx[0];
+				finger.m_inner_middle_phalanx_angle = hand->finger[j].anglephalanx[1];
+				finger.m_middle_outer_phalanx_angle = hand->finger[j].anglephalanx[0];
+				fingers.Add(std::move(finger));
+			}
+
+			// will execute injection in game thread
+			AsyncTask(ENamedThreads::GameThread, [=, id = hand->id, lr = hand->lr, plugin = m_plugin]() {
+				plugin->inject_hand_data(id, (lr == 1), translation, rotation, fingers);
+			});
+		}
+	}
+}
+
+void FDTrackPollThread::handle_human_model() {
+	
+	const DTrack_Human_Type_d *human = nullptr;
+	for (int i = 0; i < m_dtrack->getNumHuman(); i++) {
+		human = m_dtrack->getHuman(i);
+		checkf(human, TEXT("DTrack API error, human address is null"));
+
+		TArray<FJoint> joints;
+
+		for (int j = 0; j < human->num_joints; j++) {
+			FJoint joint;
+			// I'm not sure if I should check for quality as I don't know if the caller
+			// would expect number and order of joints to be relevant/constant.
+			// They do carry an ID though so I suppose the caller must be aware of that.
+			if (human->joint[j].quality > 0.1) {
+				joint.m_id = human->joint[j].id;
+				joint.m_location = from_dtrack_location(human->joint[j].loc);
+				joint.m_rotation = from_dtrack_rotation(human->joint[j].rot);
+				joint.m_angles.Add(human->joint[j].ang[0]);   // well, are they Euler angles of the same rot as above or not?
+				joint.m_angles.Add(human->joint[j].ang[1]);
+				joint.m_angles.Add(human->joint[j].ang[2]);
+				joints.Add(std::move(joint));
+			}
+		}
+
+		// will execute injection in game thread
+		AsyncTask(ENamedThreads::GameThread, [=, id = human->id, plugin = m_plugin]() {
+			plugin->inject_human_model_data(id, joints);
+		});
+	}
+}
 
 // translate a DTrack body location (translation in mm) into Unreal Location (in cm)
 FVector FDTrackPollThread::from_dtrack_location(const double(&n_translation)[3]) {

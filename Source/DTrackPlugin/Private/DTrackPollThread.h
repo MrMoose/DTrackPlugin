@@ -32,6 +32,8 @@
 
 class FDTrackPollThread;
 
+/** @brief thread encapsulating all ART SDK interaction
+ */
 class FDTrackPollThread : public FRunnable {
 
 	public:
@@ -40,22 +42,18 @@ class FDTrackPollThread : public FRunnable {
 		
 		/** Singleton instance, can access the thread any time via static accessor
 		 */
-		static  FDTrackPollThread *m_runnable;
+		static FDTrackPollThread *m_runnable;
 
-	
-
-		/*
-		Start the thread and the worker from static (easy access)!
-		This code ensures only 1 Prime Number thread will be able to run at a time.
-		This function returns a handle to the newly started instance.
-		*/
+		/**	Start the thread and the worker from static
+			This function returns a handle to the newly started instance.
+		 */
 		static FDTrackPollThread* start(const UDTrackComponent *n_client, FDTrackPlugin *n_plugin);
 
 	
 		void interrupt();
 		void join();
 
-
+		/// does nothing, SDK is initialized in run
 		bool Init() override;
 
 		// 1 is success
@@ -65,6 +63,7 @@ class FDTrackPollThread : public FRunnable {
 		/// This is called if a thread is requested to terminate early.
 		void Stop() override;
 
+		/// empty teardown, Run() will cleanup
 		void Exit() override;
 
 
@@ -73,6 +72,15 @@ class FDTrackPollThread : public FRunnable {
 		/// after receive, treat body info and send it to the plug-in
 		void handle_bodies();
 
+		/// after receive, treat flystick info and send it to the plug-in
+		void handle_flysticks();
+
+		/// treat hand tracking info and send it to the plug-in
+		void handle_hands();
+
+		/// treat human model tracking info and send it to the plug-in
+		void handle_human_model();
+
 		/// translate dtrack rotation matrix to rotator according to selected room calibration
 		FRotator from_dtrack_rotation(const double(&n_matrix)[9]);
 
@@ -80,9 +88,9 @@ class FDTrackPollThread : public FRunnable {
 		FVector from_dtrack_location(const double(&n_translation)[3]);
 
 		
-		FRunnableThread   *m_thread; //!< Thread to run the worker FRunnable on
-
-		FDTrackPlugin     *m_plugin; //!< during runtime, plugin gets data injected
+		FRunnableThread   *m_thread;       //!< Thread to run the worker FRunnable on
+		FThreadSafeCounter m_stop_counter; //!< atomic stop counter
+		FDTrackPlugin     *m_plugin;       //!< during runtime, plugin gets data injected
 
 		/// this is the DTrack SDK main object. I'll have one one owned here as Í do not know if they can coexist
 		std::unique_ptr< DTrackSDK > m_dtrack;
@@ -92,19 +100,6 @@ class FDTrackPollThread : public FRunnable {
 		const std::string            m_dtrack_server_ip;
 		const uint32                 m_dtrack_server_port;
 		const ECoordinateSystemType  m_coordinate_system = ECoordinateSystemType::CST_Normal;
-
-
-		/** Stop this thread? Uses Thread Safe Counter */
-		FThreadSafeCounter           m_stop_counter;
-
-
-
-		/** 
-		 * each flystick gets its button states remembered here.
-		 * flystick's ID is index in vector
-		 */
-		std::vector< std::vector<int> > m_flystick_buttons;
-
 
 		/// room coordinate adoption matrix for "normal" setting
 		const FMatrix  m_trafo_normal;
