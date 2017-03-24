@@ -30,6 +30,8 @@
 #include "DTrackPollThread.h"
 #include "FDTrackPlugin.h"
 
+#include "DTrackSDK.hpp"
+
 IMPLEMENT_MODULE(FDTrackPlugin, DTrackPlugin)
 
 DEFINE_LOG_CATEGORY(DTrackPluginLog);

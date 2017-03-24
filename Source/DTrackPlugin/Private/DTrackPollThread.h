@@ -31,10 +31,11 @@
 #include <vector>
 
 class FDTrackPollThread;
+class DTrackSDK;
 
 /** @brief thread encapsulating all ART SDK interaction
  */
-class FDTrackPollThread : public FRunnable {
+class DTRACKPLUGIN_API FDTrackPollThread : public FRunnable {
 
 	public:
 		FDTrackPollThread(const UDTrackComponent *n_client, FDTrackPlugin *n_plugin);
@@ -48,7 +49,6 @@ class FDTrackPollThread : public FRunnable {
 			This function returns a handle to the newly started instance.
 		 */
 		static FDTrackPollThread* start(const UDTrackComponent *n_client, FDTrackPlugin *n_plugin);
-
 	
 		void interrupt();
 		void join();
