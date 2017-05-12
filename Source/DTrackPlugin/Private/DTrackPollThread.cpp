@@ -208,10 +208,8 @@ void FDTrackPollThread::handle_bodies() {
 			FVector translation = from_dtrack_location(body->loc);
 			FRotator rotation = from_dtrack_rotation(body->rot);
 
-			// will execute injection in game thread to avoid mutexing this so often 
-			AsyncTask(ENamedThreads::GameThread, [=, id = body->id, plugin = m_plugin]() {
-				plugin->inject_body_data(id, translation, rotation);
-			});
+			FScopeLock lock(m_plugin->bodies_mutex());
+			m_plugin->inject_body_data(body->id, translation, rotation);
 		}
 	}
 }
@@ -242,10 +240,8 @@ void FDTrackPollThread::handle_flysticks() {
 				joysticks[idx] = static_cast<float>(flystick->joystick[idx]);
 			}
 
-			// will execute injection in game thread
-			AsyncTask(ENamedThreads::GameThread, [=, id = flystick->id, plugin = m_plugin]() {
-				plugin->inject_flystick_data(id, translation, rotation, buttons, joysticks);
-			});
+			FScopeLock lock(m_plugin->flystick_mutex());
+			m_plugin->inject_flystick_data(flystick->id, translation, rotation, buttons, joysticks);
 		}
 	}
 }
@@ -284,10 +280,8 @@ void FDTrackPollThread::handle_hands() {
 				fingers.Add(std::move(finger));
 			}
 
-			// will execute injection in game thread
-			AsyncTask(ENamedThreads::GameThread, [=, id = hand->id, lr = hand->lr, plugin = m_plugin]() {
-				plugin->inject_hand_data(id, (lr == 1), translation, rotation, fingers);
-			});
+			FScopeLock lock(m_plugin->hand_mutex());
+			m_plugin->inject_hand_data(hand->id, (hand->lr == 1), translation, rotation, fingers);
 		}
 	}
 }
@@ -317,10 +311,8 @@ void FDTrackPollThread::handle_human_model() {
 			}
 		}
 
-		// will execute injection in game thread
-		AsyncTask(ENamedThreads::GameThread, [=, id = human->id, plugin = m_plugin]() {
-			plugin->inject_human_model_data(id, joints);
-		});
+		FScopeLock lock(m_plugin->human_mutex());
+		m_plugin->inject_human_model_data(human->id, joints);
 	}
 }
 

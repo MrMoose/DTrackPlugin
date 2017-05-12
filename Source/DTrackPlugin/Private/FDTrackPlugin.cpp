@@ -87,6 +87,26 @@ void FDTrackPlugin::remove(class UDTrackComponent *n_client) {
 	}
 }
 
+FCriticalSection *FDTrackPlugin::bodies_mutex() {
+
+	return &m_bodies_mutex;
+}
+
+FCriticalSection * FDTrackPlugin::flystick_mutex() {
+
+	return &m_flystick_mutex;
+}
+
+FCriticalSection *FDTrackPlugin::hand_mutex() {
+
+	return &m_hand_mutex;
+}
+
+FCriticalSection * FDTrackPlugin::human_mutex() {
+
+	return &m_human_mutex;
+}
+
 void FDTrackPlugin::tick(const float n_delta_time, const UDTrackComponent *n_component) {
 
 	if (!m_polling_thread) {
@@ -117,6 +137,7 @@ void FDTrackPlugin::tick(const float n_delta_time, const UDTrackComponent *n_com
 		UDTrackComponent *component = c.Get();
 		if (component) {
 			// now handle the different tracking types by calling the component
+			
 			handle_bodies(component);
 			handle_flysticks(component);
 			handle_hands(component);
@@ -178,6 +199,7 @@ void FDTrackPlugin::inject_human_model_data(const int n_human_id, const TArray<F
 /************************************************************************/
 void FDTrackPlugin::handle_bodies(UDTrackComponent *n_component) {
 
+	FScopeLock lock(bodies_mutex());
 	for (int32 i = 0; i < m_body_data.Num(); i++) {
 		n_component->body_tracking(i, m_body_data[i].m_location, m_body_data[i].m_rotation);
 	}
@@ -186,6 +208,7 @@ void FDTrackPlugin::handle_bodies(UDTrackComponent *n_component) {
 void FDTrackPlugin::handle_flysticks(UDTrackComponent *n_component) {
 
 	// treat all flysticks
+	FScopeLock lock(flystick_mutex());
 	for (int32 i = 0; i < m_flystick_data.Num(); i++) {
 
 		FFlystick &flystick = m_flystick_data[i];
@@ -228,6 +251,7 @@ void FDTrackPlugin::handle_flysticks(UDTrackComponent *n_component) {
 void FDTrackPlugin::handle_hands(UDTrackComponent *n_component) {
 
 	// treat all tracked hands
+	FScopeLock lock(hand_mutex());
 	for (int32 i = 0; i < m_hand_data.Num(); i++) {
 		const FHand &hand = m_hand_data[i];
 		n_component->hand_tracking(i, hand.m_right, hand.m_location, hand.m_rotation, hand.m_fingers);
@@ -236,6 +260,7 @@ void FDTrackPlugin::handle_hands(UDTrackComponent *n_component) {
 
 void FDTrackPlugin::handle_human_model(UDTrackComponent *n_component) {
 	
+	FScopeLock lock(human_mutex());
 	// treat all tracked hands
 	for (int32 i = 0; i < m_human_model_data.Num(); i++) {
 		const FHuman &human = m_human_model_data[i];

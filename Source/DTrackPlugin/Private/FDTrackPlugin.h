@@ -44,6 +44,11 @@ class FDTrackPlugin : public IDTrackPlugin {
 		/// tell the plugin we're no longer interested in tracking data
 		void remove(class UDTrackComponent *n_client);
 
+		FCriticalSection *bodies_mutex();
+		FCriticalSection *flystick_mutex();
+		FCriticalSection *hand_mutex();
+		FCriticalSection *human_mutex();
+
 	private:
 		
 		friend class FDTrackPollThread;
@@ -67,6 +72,11 @@ class FDTrackPlugin : public IDTrackPlugin {
 		TArray<FFlystick>    m_flystick_data;      //!< cached flystick tracking info
 		TArray<FHand>        m_hand_data;          //!< cached hand tracking info
 		TArray<FHuman>       m_human_model_data;   //!< cached human model info
+
+		FCriticalSection     m_bodies_mutex;       //!< locks access to bodies
+		FCriticalSection     m_flystick_mutex;     //!< locks access to flysticks
+		FCriticalSection     m_hand_mutex;         //!< locks access to hands
+		FCriticalSection     m_human_mutex;        //!< locks access to human model
 
 		std::vector< TArray<int> > m_last_button_states;
 

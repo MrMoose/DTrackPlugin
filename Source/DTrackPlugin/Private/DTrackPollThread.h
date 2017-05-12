@@ -66,7 +66,6 @@ class DTRACKPLUGIN_API FDTrackPollThread : public FRunnable {
 		/// empty teardown, Run() will cleanup
 		void Exit() override;
 
-
 	private:
 
 		/// after receive, treat body info and send it to the plug-in
@@ -91,6 +90,7 @@ class DTRACKPLUGIN_API FDTrackPollThread : public FRunnable {
 		FRunnableThread   *m_thread;       //!< Thread to run the worker FRunnable on
 		FThreadSafeCounter m_stop_counter; //!< atomic stop counter
 		FDTrackPlugin     *m_plugin;       //!< during runtime, plugin gets data injected
+
 
 		/// this is the DTrack SDK main object. I'll have one one owned here as Í do not know if they can coexist
 		std::unique_ptr< DTrackSDK > m_dtrack;
