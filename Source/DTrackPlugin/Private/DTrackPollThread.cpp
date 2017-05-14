@@ -166,11 +166,15 @@ uint32 FDTrackPollThread::Run() {
 		// receive as much as we can
 		if (m_dtrack->receive()) {
 
+			m_plugin->begin_injection();
+
 			// treat body info and cache results into plug-in
 			handle_bodies();
 			handle_flysticks();
 			handle_hands();
 			handle_human_model();
+		
+			m_plugin->end_injection();
 		}
 	}
 
@@ -208,7 +212,7 @@ void FDTrackPollThread::handle_bodies() {
 			FVector translation = from_dtrack_location(body->loc);
 			FRotator rotation = from_dtrack_rotation(body->rot);
 
-			FScopeLock lock(m_plugin->bodies_mutex());
+	//		FScopeLock lock(m_plugin->bodies_mutex());
 			m_plugin->inject_body_data(body->id, translation, rotation);
 		}
 	}
@@ -240,7 +244,7 @@ void FDTrackPollThread::handle_flysticks() {
 				joysticks[idx] = static_cast<float>(flystick->joystick[idx]);
 			}
 
-			FScopeLock lock(m_plugin->flystick_mutex());
+	//		FScopeLock lock(m_plugin->flystick_mutex());
 			m_plugin->inject_flystick_data(flystick->id, translation, rotation, buttons, joysticks);
 		}
 	}
@@ -280,7 +284,7 @@ void FDTrackPollThread::handle_hands() {
 				fingers.Add(std::move(finger));
 			}
 
-			FScopeLock lock(m_plugin->hand_mutex());
+	//		FScopeLock lock(m_plugin->hand_mutex());
 			m_plugin->inject_hand_data(hand->id, (hand->lr == 1), translation, rotation, fingers);
 		}
 	}
@@ -311,7 +315,7 @@ void FDTrackPollThread::handle_human_model() {
 			}
 		}
 
-		FScopeLock lock(m_plugin->human_mutex());
+	//	FScopeLock lock(m_plugin->human_mutex());
 		m_plugin->inject_human_model_data(human->id, joints);
 	}
 }

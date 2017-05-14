@@ -29,7 +29,7 @@
 #include "IDTrackPlugin.h"
 #include "DTrackPollThread.h"
 #include "FDTrackPlugin.h"
-
+#include "Math/UnrealMathUtility.h"
 #include "DTrackSDK.hpp"
 
 IMPLEMENT_MODULE(FDTrackPlugin, DTrackPlugin)
@@ -38,13 +38,35 @@ DEFINE_LOG_CATEGORY(DTrackPluginLog);
 
 #define LOCTEXT_NAMESPACE "DTrackPlugin"
 
-#define PLUGIN_VERSION "0.2.0"
+#define PLUGIN_VERSION "0.3.0"
 
 
 void FDTrackPlugin::StartupModule() {
 	
 	UE_LOG(DTrackPluginLog, Log, TEXT("Using DTrack Plugin, threaded version %s"), TEXT(PLUGIN_VERSION));
 
+	m_front.reset(new DataBuffer);
+	m_back.reset(new DataBuffer);
+	m_injected.reset(new DataBuffer);
+
+	// quick test for extrapolation
+// 	FVector current;
+// 	FVector last;
+// 
+// 	m_last_injection_time = 1;
+// 	m_current_injection_time = 3;
+// 
+// 	current.Y = 2;
+// 	last.Y = 1;
+// 
+// 	FVector test;
+// 	extrapolate(test, last, current);
+// 
+// 	// I expect Y to be 2.5
+// 	checkf(test.Y == 2.5, TEXT("extrapolation test failed"));
+// 
+// 	m_last_injection_time = 0;
+// 	m_current_injection_time = 0;
 }
 
 void FDTrackPlugin::ShutdownModule() {
@@ -60,6 +82,10 @@ void FDTrackPlugin::ShutdownModule() {
 		delete m_polling_thread;
 		m_polling_thread = nullptr;
 	}
+
+	m_front.reset();
+	m_back.reset();
+	m_injected.reset();
 }
 
 void FDTrackPlugin::start_up(UDTrackComponent *n_client) {
@@ -87,24 +113,9 @@ void FDTrackPlugin::remove(class UDTrackComponent *n_client) {
 	}
 }
 
-FCriticalSection *FDTrackPlugin::bodies_mutex() {
+FCriticalSection *FDTrackPlugin::swapping_mutex() {
 
-	return &m_bodies_mutex;
-}
-
-FCriticalSection * FDTrackPlugin::flystick_mutex() {
-
-	return &m_flystick_mutex;
-}
-
-FCriticalSection *FDTrackPlugin::hand_mutex() {
-
-	return &m_hand_mutex;
-}
-
-FCriticalSection * FDTrackPlugin::human_mutex() {
-
-	return &m_human_mutex;
+	return &m_swapping_mutex;
 }
 
 void FDTrackPlugin::tick(const float n_delta_time, const UDTrackComponent *n_component) {
@@ -152,71 +163,194 @@ void FDTrackPlugin::tick(const float n_delta_time, const UDTrackComponent *n_com
 /************************************************************************/
 void FDTrackPlugin::inject_body_data(const int n_body_id, const FVector &n_translation, const FRotator &n_rotation) {
 
-	if (m_body_data.Num() < (n_body_id + 1)) {
-		m_body_data.SetNumZeroed(n_body_id + 1, false);
+	check(m_injected);
+	TArray<FBody> &body_inject = m_injected->m_body_data;
+
+	if (body_inject.Num() < (n_body_id + 1)) {
+		body_inject.SetNumZeroed(n_body_id + 1, false);
 	}
 
-	m_body_data[n_body_id].m_location = n_translation;
-	m_body_data[n_body_id].m_rotation = n_rotation;
+	body_inject[n_body_id].m_location = n_translation;
+	body_inject[n_body_id].m_rotation = n_rotation;
 }
 
 void FDTrackPlugin::inject_flystick_data(const int n_flystick_id, const FVector &n_translation, const FRotator &n_rotation, const TArray<int> &n_button_state, const TArray<float> &n_joystick_state) {
 
-	if (m_flystick_data.Num() < (n_flystick_id + 1)) {
-		m_flystick_data.SetNumZeroed(n_flystick_id + 1, false);
+	check(m_injected);
+	TArray<FFlystick> &flystick_inject = m_injected->m_flystick_data;
+
+	if (flystick_inject.Num() < (n_flystick_id + 1)) {
+		flystick_inject.SetNumZeroed(n_flystick_id + 1, false);
 	}
 
-	m_flystick_data[n_flystick_id].m_location = n_translation;
-	m_flystick_data[n_flystick_id].m_rotation = n_rotation;
-	m_flystick_data[n_flystick_id].m_button_states = n_button_state;
-	m_flystick_data[n_flystick_id].m_joystick_states = n_joystick_state;
+	flystick_inject[n_flystick_id].m_location = n_translation;
+	flystick_inject[n_flystick_id].m_rotation = n_rotation;
+	flystick_inject[n_flystick_id].m_button_states = n_button_state;
+	flystick_inject[n_flystick_id].m_joystick_states = n_joystick_state;
 }
 
 void FDTrackPlugin::inject_hand_data(const int n_hand_id, const bool &n_right, const FVector &n_translation, const FRotator &n_rotation, const TArray<FFinger> &n_fingers) {
 
-	if (m_hand_data.Num() < (n_hand_id + 1)) {
-		m_hand_data.SetNumZeroed(n_hand_id + 1, false);
+	check(m_injected);
+	TArray<FHand> &hand_inject = m_injected->m_hand_data;
+
+	if (hand_inject.Num() < (n_hand_id + 1)) {
+		hand_inject.SetNumZeroed(n_hand_id + 1, false);
 	}
 
-	m_hand_data[n_hand_id].m_right = n_right;
-	m_hand_data[n_hand_id].m_location = n_translation;
-	m_hand_data[n_hand_id].m_rotation = n_rotation;
-	m_hand_data[n_hand_id].m_fingers = n_fingers;
+	hand_inject[n_hand_id].m_right = n_right;
+	hand_inject[n_hand_id].m_location = n_translation;
+	hand_inject[n_hand_id].m_rotation = n_rotation;
+	hand_inject[n_hand_id].m_fingers = n_fingers;
 }
 
 void FDTrackPlugin::inject_human_model_data(const int n_human_id, const TArray<FJoint> &n_joints) {
 	
-	if (m_human_model_data.Num() < (n_human_id + 1)) {
-		m_human_model_data.SetNumZeroed(n_human_id + 1, false);
+	check(m_injected);
+	TArray<FHuman> &human_inject = m_injected->m_human_model_data;
+
+	if (human_inject.Num() < (n_human_id + 1)) {
+		human_inject.SetNumZeroed(n_human_id + 1, false);
 	}
 
-	m_human_model_data[n_human_id].m_joints = n_joints;
+	human_inject[n_human_id].m_joints = n_joints;
 }
+
+void FDTrackPlugin::begin_injection() {
+
+	m_last_injection_time = m_current_injection_time;
+	m_current_injection_time = FPlatformTime::Cycles64();
+}
+
+void FDTrackPlugin::end_injection() {
+
+	// injection vector becomes front now, front becomes back and back becomes 
+	// the new injection data storage
+	FScopeLock lock(swapping_mutex());
+	std::swap(m_front, m_back);
+	std::swap(m_front, m_injected);
+}
+
+// y = dst
+// y1 = last
+// y2 = current
+void FDTrackPlugin::extrapolate(FVector &y, const FVector &y1, const FVector &y2) const {
+
+	uint64 now = FPlatformTime::Cycles64();
+
+	// If the values we have are very recent I don't extrapolate and just return the latest
+	if (now < m_current_injection_time + 10) {
+		y = y2;
+		return;
+	}
+
+	// this should cover startup conditions
+	if (!m_current_injection_time || !m_last_injection_time) {		
+		y = y2;
+		return;
+	}
+
+	// unlikely since we use cycles but we could run twice so close together
+	if (m_current_injection_time == m_last_injection_time) {
+		y = y2;
+		return;
+	}
+
+
+	// f(x) = y1 + ((x - x1) / (x2 - x1)) * (y2 - y1)
+	//              ^-----factor--------^
+
+	float factor = ((now - m_last_injection_time) / (m_current_injection_time - m_last_injection_time));
+
+	y.X = y1.X + factor * (y2.X - y1.X);
+	y.Y = y1.Y + factor * (y2.Y - y1.Y);
+	y.Z = y1.Z + factor * (y2.Z - y1.Z);
+}
+
+void FDTrackPlugin::extrapolate(FRotator &n_y, const FRotator &n_y1, const FRotator &n_y2) const {
+
+	uint64 now = FPlatformTime::Cycles64();
+
+	// If the values we have are very recent I don't extrapolate and just return the latest
+	if (now < m_current_injection_time + 10) {
+		n_y = n_y2;
+		return;
+	}
+
+	// this should cover startup conditions
+	if (!m_current_injection_time || !m_last_injection_time) {
+		n_y = n_y2;
+		return;
+	}
+
+	// unlikely since we use cycles but we could run twice so close together
+	if (m_current_injection_time == m_last_injection_time) {
+		n_y = n_y2;
+		return;
+	}
+
+	// I will use quaternions of those because I have no idea what happens when 
+	// I extrapolate those Eulers
+	FQuat y1 = n_y1.Quaternion();
+	FQuat y2 = n_y2.Quaternion();
+	FQuat ret;
+
+	// f(x) = y1 + ((x - x1) / (x2 - x1)) * (y2 - y1)
+	//              ^-----factor--------^
+
+	float factor = ((now - m_last_injection_time) / (m_current_injection_time - m_last_injection_time));
+	ret.W = y1.W + factor * (y2.W - y1.W);
+	ret.X = y1.X + factor * (y2.X - y1.X);
+	ret.Y = y1.Y + factor * (y2.Y - y1.Y);
+	ret.Z = y1.Z + factor * (y2.Z - y1.Z);
+	n_y = ret.Rotator();
+}
+
 
 /************************************************************************/
 /* Handler methods. Called in game thread tick                          */
 /* to relay information to components                                   */
 /************************************************************************/
 void FDTrackPlugin::handle_bodies(UDTrackComponent *n_component) {
+	
+	check(m_front);
+	check(m_back);
 
-	FScopeLock lock(bodies_mutex());
-	for (int32 i = 0; i < m_body_data.Num(); i++) {
-		n_component->body_tracking(i, m_body_data[i].m_location, m_body_data[i].m_rotation);
+	FScopeLock lock(swapping_mutex());
+	for (int32 i = 0; i < m_front->m_body_data.Num(); i++) {
+
+		const FBody &current_body = m_front->m_body_data[i];
+
+		// This should occur only once while starting up
+		// No extrapolation with one data set
+		if (m_back->m_body_data.Num() != m_front->m_body_data.Num()) {
+			n_component->body_tracking(i, current_body.m_location, current_body.m_rotation);
+		} else {
+			const FBody &last_body = m_back->m_body_data[i];
+
+			FVector extrapolated_location;
+			extrapolate(extrapolated_location, last_body.m_location, current_body.m_location);
+
+			FRotator extrapolated_rotation;
+			extrapolate(extrapolated_rotation, last_body.m_rotation, current_body.m_rotation);
+
+			n_component->body_tracking(i, extrapolated_location, extrapolated_rotation);
+		}
 	}
 }
 
 void FDTrackPlugin::handle_flysticks(UDTrackComponent *n_component) {
 
 	// treat all flysticks
-	FScopeLock lock(flystick_mutex());
-	for (int32 i = 0; i < m_flystick_data.Num(); i++) {
+	FScopeLock lock(swapping_mutex());
+	for (int32 i = 0; i < m_front->m_flystick_data.Num(); i++) {
 
-		FFlystick &flystick = m_flystick_data[i];
+		FFlystick &current_flystick = m_front->m_flystick_data[i];
 
 		// tracking first, it's always called
-		n_component->flystick_tracking(i, flystick.m_location, flystick.m_rotation);
+		n_component->flystick_tracking(i, current_flystick.m_location, current_flystick.m_rotation);
 
-		if (flystick.m_button_states.Num()) {
+		if (current_flystick.m_button_states.Num()) {
 			// compare button states with the last seen state, calling button handlers if appropriate
 
 			// See if we have to resize our actual state vector to accommodate this.
@@ -227,7 +361,7 @@ void FDTrackPlugin::handle_flysticks(UDTrackComponent *n_component) {
 				m_last_button_states.resize(i + 1, new_stick);
 			}
 			
-			const TArray<int> &current_states = flystick.m_button_states;
+			const TArray<int> &current_states = current_flystick.m_button_states;
 			TArray<int> &last_states = m_last_button_states[i];
 
 			// have to go through all the button states now to figure out which ones have differed
@@ -240,8 +374,8 @@ void FDTrackPlugin::handle_flysticks(UDTrackComponent *n_component) {
 		}
 
 		// Call joysticks if we have 'em
-		if (flystick.m_joystick_states.Num()) {
-			n_component->flystick_joystick(i, flystick.m_joystick_states);
+		if (current_flystick.m_joystick_states.Num()) {
+			n_component->flystick_joystick(i, current_flystick.m_joystick_states);
 		}
 	}
 
@@ -251,19 +385,19 @@ void FDTrackPlugin::handle_flysticks(UDTrackComponent *n_component) {
 void FDTrackPlugin::handle_hands(UDTrackComponent *n_component) {
 
 	// treat all tracked hands
-	FScopeLock lock(hand_mutex());
-	for (int32 i = 0; i < m_hand_data.Num(); i++) {
-		const FHand &hand = m_hand_data[i];
+	FScopeLock lock(swapping_mutex());
+	for (int32 i = 0; i < m_front->m_hand_data.Num(); i++) {
+		const FHand &hand = m_front->m_hand_data[i];
 		n_component->hand_tracking(i, hand.m_right, hand.m_location, hand.m_rotation, hand.m_fingers);
 	}
 }
 
 void FDTrackPlugin::handle_human_model(UDTrackComponent *n_component) {
 	
-	FScopeLock lock(human_mutex());
+	FScopeLock lock(swapping_mutex());
 	// treat all tracked hands
-	for (int32 i = 0; i < m_human_model_data.Num(); i++) {
-		const FHuman &human = m_human_model_data[i];
+	for (int32 i = 0; i < m_front->m_human_model_data.Num(); i++) {
+		const FHuman &human = m_front->m_human_model_data[i];
 		n_component->human_model(i, human.m_joints);
 	}
 }

@@ -27,6 +27,7 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 
 class FDTrackPlugin : public IDTrackPlugin {
 
@@ -44,11 +45,8 @@ class FDTrackPlugin : public IDTrackPlugin {
 		/// tell the plugin we're no longer interested in tracking data
 		void remove(class UDTrackComponent *n_client);
 
-		FCriticalSection *bodies_mutex();
-		FCriticalSection *flystick_mutex();
-		FCriticalSection *hand_mutex();
-		FCriticalSection *human_mutex();
-
+		FCriticalSection *swapping_mutex();
+		
 	private:
 		
 		friend class FDTrackPollThread;
@@ -68,20 +66,34 @@ class FDTrackPlugin : public IDTrackPlugin {
 		/// polling thread injects hand tracking data for later retrieval
 		void inject_human_model_data(const int n_human_id, const TArray<FJoint> &n_joints);
 
-		TArray<FBody>        m_body_data;          //!< cached body data being injected by thread
-		TArray<FFlystick>    m_flystick_data;      //!< cached flystick tracking info
-		TArray<FHand>        m_hand_data;          //!< cached hand tracking info
-		TArray<FHuman>       m_human_model_data;   //!< cached human model info
+		/// begin enter values and measure time
+		void begin_injection();
+		void end_injection();
 
-		FCriticalSection     m_bodies_mutex;       //!< locks access to bodies
-		FCriticalSection     m_flystick_mutex;     //!< locks access to flysticks
-		FCriticalSection     m_hand_mutex;         //!< locks access to hands
-		FCriticalSection     m_human_mutex;        //!< locks access to human model
+		void extrapolate(FVector &y, const FVector &y1, const FVector &y2) const;
+		void extrapolate(FRotator &n_y, const FRotator &n_y1, const FRotator &n_y2) const;
+
+		/// For front and back buffer of data sent by polling thread
+		struct DataBuffer {
+			TArray<FBody>        m_body_data;          //!< cached body data being injected by thread
+			TArray<FFlystick>    m_flystick_data;      //!< cached flystick tracking info
+			TArray<FHand>        m_hand_data;          //!< cached hand tracking info
+			TArray<FHuman>       m_human_model_data;   //!< cached human model info
+		};
+
+		/// unreal doesn't seem to have condition variables
+		FCriticalSection         m_swapping_mutex;
+		uint64                   m_current_injection_time = 0;
+		uint64                   m_last_injection_time = 0;
+
+
+		std::unique_ptr<DataBuffer> m_front;           //!< current data to read by game thread
+		std::unique_ptr<DataBuffer> m_back;            //!< last values 
+		std::unique_ptr<DataBuffer> m_injected;        //!< values being injected  
 
 		std::vector< TArray<int> > m_last_button_states;
 
 		class FDTrackPollThread *m_polling_thread = nullptr;
-
 			
 		/// consider the current frame's 6dof bodies and call the component if appropriate
 		void handle_bodies(UDTrackComponent *n_component);
