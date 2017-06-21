@@ -37,7 +37,7 @@ namespace UnrealBuildTool.Rules
             get { return Path.GetFullPath(Path.Combine(ModuleDirectory, "../../ThirdParty/")); }
         }
 
-		public DTrackPlugin(TargetInfo Target)
+		public DTrackPlugin(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {
@@ -84,7 +84,7 @@ namespace UnrealBuildTool.Rules
             LoadDTrackLib(Target);
 		}
 
-        public bool LoadDTrackLib(TargetInfo Target)
+        public bool LoadDTrackLib(ReadOnlyTargetRules Target)
         {
             bool isLibrarySupported = false;
 
