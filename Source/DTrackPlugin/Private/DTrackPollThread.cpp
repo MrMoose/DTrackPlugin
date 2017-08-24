@@ -260,10 +260,10 @@ void FDTrackPollThread::handle_hands() {
 		if (hand->quality > 0) {
 			FVector translation = from_dtrack_location(hand->loc);
 			FRotator rotation = from_dtrack_rotation(hand->rot);
-			TArray<FFinger> fingers;
+			TArray<FDtrackFinger> fingers;
 
 			for (int j = 0; j < hand->nfinger; j++) {
-				FFinger finger;
+				FDtrackFinger finger;
 				switch (j) {     // this is mostly to allow for the blueprint to be a 
 								 // little more expressive than using assumptions about the index' meaning
 					case 0: finger.m_type = EFingerType::FT_Thumb; break;
@@ -297,10 +297,10 @@ void FDTrackPollThread::handle_human_model() {
 		human = m_dtrack->getHuman(i);
 		checkf(human, TEXT("DTrack API error, human address is null"));
 
-		TArray<FJoint> joints;
+		TArray<FDtrackJoint> joints;
 
 		for (int j = 0; j < human->num_joints; j++) {
-			FJoint joint;
+			FDtrackJoint joint;
 			// I'm not sure if I should check for quality as I don't know if the caller
 			// would expect number and order of joints to be relevant/constant.
 			// They do carry an ID though so I suppose the caller must be aware of that.

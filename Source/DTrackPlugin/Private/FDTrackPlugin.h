@@ -61,10 +61,10 @@ class FDTrackPlugin : public IDTrackPlugin {
 
 		/// polling thread injects hand tracking data for later retrieval
 		void inject_hand_data(const int n_hand_id, const bool &n_right, const FVector &n_translation, 
-					const FRotator &n_rotation, const TArray<FFinger> &n_fingers);
+					const FRotator &n_rotation, const TArray<FDtrackFinger> &n_fingers);
 
 		/// polling thread injects hand tracking data for later retrieval
-		void inject_human_model_data(const int n_human_id, const TArray<FJoint> &n_joints);
+		void inject_human_model_data(const int n_human_id, const TArray<FDtrackJoint> &n_joints);
 
 		/// begin enter values and measure time
 		void begin_injection();
@@ -77,7 +77,7 @@ class FDTrackPlugin : public IDTrackPlugin {
 		struct DataBuffer {
 			TArray<FBody>        m_body_data;          //!< cached body data being injected by thread
 			TArray<FFlystick>    m_flystick_data;      //!< cached flystick tracking info
-			TArray<FHand>        m_hand_data;          //!< cached hand tracking info
+			TArray<FDtrackHand>  m_hand_data;          //!< cached hand tracking info
 			TArray<FHuman>       m_human_model_data;   //!< cached human model info
 		};
 

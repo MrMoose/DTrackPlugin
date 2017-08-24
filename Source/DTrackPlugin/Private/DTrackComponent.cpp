@@ -118,7 +118,7 @@ void UDTrackComponent::flystick_joystick(const int32 n_flystick_id, const TArray
 	}
 }
 
-void UDTrackComponent::hand_tracking(const int32 n_hand_id, const bool n_right, const FVector &n_translation, const FRotator &n_rotation, const TArray<FFinger> &n_fingers) {
+void UDTrackComponent::hand_tracking(const int32 n_hand_id, const bool n_right, const FVector &n_translation, const FRotator &n_rotation, const TArray<FDtrackFinger> &n_fingers) {
 	
 	if (GetOwner()->GetClass()->ImplementsInterface(UDTrackInterface::StaticClass())) {
 		IDTrackInterface::Execute_OnHandTracking(GetOwner(), n_hand_id, n_right, n_translation, n_rotation, n_fingers);
@@ -127,7 +127,7 @@ void UDTrackComponent::hand_tracking(const int32 n_hand_id, const bool n_right, 
 	}
 }
 
-void UDTrackComponent::human_model(const int32 n_human_id, const TArray<FJoint> &n_joints) {
+void UDTrackComponent::human_model(const int32 n_human_id, const TArray<FDtrackJoint> &n_joints) {
 
 	if (GetOwner()->GetClass()->ImplementsInterface(UDTrackInterface::StaticClass())) {
 		IDTrackInterface::Execute_OnHumanModel(GetOwner(), n_human_id, n_joints);

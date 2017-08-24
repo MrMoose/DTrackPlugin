@@ -96,7 +96,7 @@ struct FFlystick {
  * This represents one finger (guess which one) as tracked info come in
  */
 USTRUCT(BlueprintType)
-struct FFinger {
+struct FDtrackFinger {
 
 	GENERATED_BODY()
 
@@ -136,7 +136,7 @@ struct FFinger {
 * This represents one finger (guess which one) as tracked info come in
 */
 USTRUCT(BlueprintType, Category=DTrack)
-struct FHand {
+struct FDtrackHand {
 
 	GENERATED_BODY()
 
@@ -151,14 +151,14 @@ struct FHand {
 		FRotator m_rotation;
 
 		UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Fingers"))
-		TArray<FFinger> m_fingers;
+		TArray<FDtrackFinger> m_fingers;
 };
 
 /**
  * This represents one joint of human model tracking.
  */
 USTRUCT(BlueprintType)
-struct FJoint {
+struct FDtrackJoint {
 
 	GENERATED_BODY()
 
@@ -190,7 +190,7 @@ struct FHuman {
 	GENERATED_BODY()
 
 		UPROPERTY(BlueprintReadOnly, meta = (DisplayName = "Joints"))
-		TArray<FJoint> m_joints;
+		TArray<FDtrackJoint> m_joints;
 };
 
 
@@ -253,13 +253,13 @@ class DTRACKPLUGIN_API IDTrackInterface {
 		 * Hand and finger tracking data comes in. They are collected in one call assuming they be treated at once.
 		 */
 		UFUNCTION(BlueprintNativeEvent, Category = DTrackEvents)
-		void OnHandTracking(const int32 HandID, const bool Right, const FVector &Translation, const FRotator &Rotation, const TArray<FFinger> &Fingers);
+		void OnHandTracking(const int32 HandID, const bool Right, const FVector &Translation, const FRotator &Rotation, const TArray<FDtrackFinger> &Fingers);
 
 		/**
 		 * Human model tracking data comes in. All joints are assembled in this one call
 		 */
 		UFUNCTION(BlueprintNativeEvent, Category = DTrackEvents)
-		void OnHumanModel(const int32 ModelID, const TArray<FJoint> &Joints);
+		void OnHumanModel(const int32 ModelID, const TArray<FDtrackJoint> &Joints);
 
 		/// needed by the engine for raw output
 		virtual FString ToString();
