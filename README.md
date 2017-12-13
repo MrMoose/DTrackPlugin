@@ -9,14 +9,14 @@
 6.    -> [Blueprint](#blueprint)
 
 ## About
-This is a plug-in for the Unreal Engine 4.14 with the purpose of native integration 
+This is a plug-in for the Unreal Engine 4.17 or later with the purpose of native integration 
 of the Advanded Realtime Tracking DTrack and DTrack2 tracking solutions.
 It supports both Blueprint and native C++ usage.
 
 This plug-in includes the official DTrack SDK 2.4.1 in binary form. Its license is identical to this.
 
 ## Preconditions
-This plugin only supports the Windows 64 bit platform. To use it you need the Unreal Engine 4.13 
+This plugin only supports the Windows 64 bit platform. To use it you need the Unreal Engine 4.17 or later. 
 or later and Microsoft Visual Studio 2015 (Express or Community Edition should suffice). Other platforms are not supported.
 
 ## Installation
