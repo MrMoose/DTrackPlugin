@@ -25,7 +25,10 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
+
+#include "CoreMinimal.h"
 #include "DTrackInterface.h"
+#include "Components/ActorComponent.h"
 #include "DTrackComponent.generated.h"
 
 UCLASS(ClassGroup="Input Controller", meta=(BlueprintSpawnableComponent))
@@ -45,7 +48,7 @@ class DTRACKPLUGIN_API UDTrackComponent : public UActorComponent {
 		bool    m_dtrack_2 = true;
 
 		UPROPERTY(EditAnywhere, meta = (DisplayName = "DTrack Room Calibration", ToolTip = "Set this according to your DTrack system's room calibration"))
-		ECoordinateSystemType m_coordinate_system = ECoordinateSystemType::CST_Normal;
+		EDTrackCoordinateSystemType m_coordinate_system = EDTrackCoordinateSystemType::CST_Normal;
 
 		virtual void TickComponent(float n_delta_time, enum ELevelTick n_tick_type, FActorComponentTickFunction *n_this_tick_function) override;
 		virtual void BeginPlay() override;
@@ -70,12 +73,12 @@ class DTRACKPLUGIN_API UDTrackComponent : public UActorComponent {
 		/**
 		 * Hand and finger tracking data comes in.
 		 */
-		void hand_tracking(const int32 n_hand_id, const bool n_right, const FVector &n_translation, const FRotator &n_rotation, const TArray<FDtrackFinger> &n_fingers);
+		void hand_tracking(const int32 n_hand_id, const bool n_right, const FVector &n_translation, const FRotator &n_rotation, const TArray<FDTrackFinger> &n_fingers);
 	
 		/**
 		 * Human model tracking data comes in.
 		 */
-		void human_model(const int32 n_human_id, const TArray<FDtrackJoint> &n_joints);
+		void human_model(const int32 n_human_id, const TArray<FDTrackJoint> &n_joints);
 
 	private:
 

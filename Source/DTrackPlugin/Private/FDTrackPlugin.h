@@ -26,6 +26,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "IDTrackPlugin.h"
+#include "DTrackInterface.h"
+
 #include <vector>
 #include <memory>
 
@@ -33,17 +37,17 @@ class FDTrackPlugin : public IDTrackPlugin {
 
 	public:
 		/** IModuleInterface implementation */
-		void StartupModule();
-		void ShutdownModule();
+		void StartupModule() override;
+		void ShutdownModule() override;
 
 		/** Manual looping, currently called in main thread */
-		void tick(const float n_delta_time, const UDTrackComponent *n_component);
+		void tick(const float n_delta_time, const UDTrackComponent *n_component) override;
 
 		/// register this component with the tracking system
-		void start_up(class UDTrackComponent *n_client);
+		void start_up(class UDTrackComponent *n_client) override;
 
 		/// tell the plugin we're no longer interested in tracking data
-		void remove(class UDTrackComponent *n_client);
+		void remove(class UDTrackComponent *n_client) override;
 
 		FCriticalSection *swapping_mutex();
 		
@@ -61,10 +65,10 @@ class FDTrackPlugin : public IDTrackPlugin {
 
 		/// polling thread injects hand tracking data for later retrieval
 		void inject_hand_data(const int n_hand_id, const bool &n_right, const FVector &n_translation, 
-					const FRotator &n_rotation, const TArray<FDtrackFinger> &n_fingers);
+					const FRotator &n_rotation, const TArray<FDTrackFinger> &n_fingers);
 
 		/// polling thread injects hand tracking data for later retrieval
-		void inject_human_model_data(const int n_human_id, const TArray<FDtrackJoint> &n_joints);
+		void inject_human_model_data(const int n_human_id, const TArray<FDTrackJoint> &n_joints);
 
 		/// begin enter values and measure time
 		void begin_injection();
@@ -75,10 +79,10 @@ class FDTrackPlugin : public IDTrackPlugin {
 
 		/// For front and back buffer of data sent by polling thread
 		struct DataBuffer {
-			TArray<FBody>        m_body_data;          //!< cached body data being injected by thread
-			TArray<FFlystick>    m_flystick_data;      //!< cached flystick tracking info
-			TArray<FDtrackHand>  m_hand_data;          //!< cached hand tracking info
-			TArray<FHuman>       m_human_model_data;   //!< cached human model info
+			TArray<FDTrackBody>        m_body_data;          //!< cached body data being injected by thread
+			TArray<FDTrackFlystick>    m_flystick_data;      //!< cached flystick tracking info
+			TArray<FDTrackHand>  m_hand_data;          //!< cached hand tracking info
+			TArray<FDTrackHuman>       m_human_model_data;   //!< cached human model info
 		};
 
 		/// unreal doesn't seem to have condition variables

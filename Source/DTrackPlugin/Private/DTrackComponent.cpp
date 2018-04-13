@@ -24,12 +24,10 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "DTrackPluginPrivatePCH.h"
 #include "DTrackComponent.h"
 
 #include "FDTrackPlugin.h"
-#include "Engine.h"
-#include "CoreUObject.h"
+#include "Engine/Engine.h"
 
 UDTrackComponent::UDTrackComponent(const FObjectInitializer &n_initializer)
 		: Super(n_initializer) {
@@ -118,7 +116,7 @@ void UDTrackComponent::flystick_joystick(const int32 n_flystick_id, const TArray
 	}
 }
 
-void UDTrackComponent::hand_tracking(const int32 n_hand_id, const bool n_right, const FVector &n_translation, const FRotator &n_rotation, const TArray<FDtrackFinger> &n_fingers) {
+void UDTrackComponent::hand_tracking(const int32 n_hand_id, const bool n_right, const FVector &n_translation, const FRotator &n_rotation, const TArray<FDTrackFinger> &n_fingers) {
 	
 	if (GetOwner()->GetClass()->ImplementsInterface(UDTrackInterface::StaticClass())) {
 		IDTrackInterface::Execute_OnHandTracking(GetOwner(), n_hand_id, n_right, n_translation, n_rotation, n_fingers);
@@ -127,7 +125,7 @@ void UDTrackComponent::hand_tracking(const int32 n_hand_id, const bool n_right, 
 	}
 }
 
-void UDTrackComponent::human_model(const int32 n_human_id, const TArray<FDtrackJoint> &n_joints) {
+void UDTrackComponent::human_model(const int32 n_human_id, const TArray<FDTrackJoint> &n_joints) {
 
 	if (GetOwner()->GetClass()->ImplementsInterface(UDTrackInterface::StaticClass())) {
 		IDTrackInterface::Execute_OnHumanModel(GetOwner(), n_human_id, n_joints);

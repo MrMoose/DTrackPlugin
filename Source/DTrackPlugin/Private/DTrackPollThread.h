@@ -26,16 +26,21 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/Runnable.h"
+#include "HAL/ThreadSafeCounter.h"
+
 #include <memory>
 #include <string>
-#include <vector>
 
 class FDTrackPollThread;
 class DTrackSDK;
+class DTrackComponent;
+class FDTrackPlugin;
 
 /** @brief thread encapsulating all ART SDK interaction
  */
-class DTRACKPLUGIN_API FDTrackPollThread : public FRunnable {
+class FDTrackPollThread : public FRunnable {
 
 	public:
 		FDTrackPollThread(const UDTrackComponent *n_client, FDTrackPlugin *n_plugin);
@@ -92,14 +97,14 @@ class DTRACKPLUGIN_API FDTrackPollThread : public FRunnable {
 		FDTrackPlugin     *m_plugin;       //!< during runtime, plugin gets data injected
 
 
-		/// this is the DTrack SDK main object. I'll have one one owned here as Í do not know if they can coexist
+		/// this is the DTrack SDK main object. I'll have one one owned here as I do not know if they can coexist
 		std::unique_ptr< DTrackSDK > m_dtrack;
 
 		/// parameters
 		const bool                   m_dtrack2;
 		const std::string            m_dtrack_server_ip;
 		const uint32                 m_dtrack_server_port;
-		const ECoordinateSystemType  m_coordinate_system = ECoordinateSystemType::CST_Normal;
+		const EDTrackCoordinateSystemType  m_coordinate_system = EDTrackCoordinateSystemType::CST_Normal;
 
 		/// room coordinate adoption matrix for "normal" setting
 		const FMatrix  m_trafo_normal;

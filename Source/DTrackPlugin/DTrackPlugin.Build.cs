@@ -30,8 +30,7 @@ namespace UnrealBuildTool.Rules
     using System;
 
 	public class DTrackPlugin : ModuleRules
-	{
-        
+	{   
         private string ThirdPartyPath
         {
             get { return Path.GetFullPath(Path.Combine(ModuleDirectory, "../../ThirdParty/")); }
@@ -39,6 +38,9 @@ namespace UnrealBuildTool.Rules
 
 		public DTrackPlugin(ReadOnlyTargetRules Target) : base(Target)
 		{
+			PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+			PrivatePCHHeaderFile = "Private/DTrackPluginPrivatePCH.h";
+
 			PublicIncludePaths.AddRange(
 				new string[] {
                     "DTrackPlugin/Public",
@@ -60,9 +62,6 @@ namespace UnrealBuildTool.Rules
 					"Core",
 					"CoreUObject",
                     "Engine",
-                    "InputCore",
-                    "Slate",
-                    "SlateCore"
 					// ... add other public dependencies that you statically link with here ...
 				}
 				);
@@ -70,6 +69,7 @@ namespace UnrealBuildTool.Rules
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
+					"InputCore"
 					// ... add private dependencies that you statically link with here ...
 				}
 				);

@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "ModuleManager.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(DTrackPluginLog, Log, All);
@@ -33,7 +34,7 @@ DECLARE_LOG_CATEGORY_EXTERN(DTrackPluginLog, Log, All);
 /**
  * The public interface to this module
  */
-class IDTrackPlugin : public IModuleInterface {
+class DTRACKPLUGIN_API IDTrackPlugin : public IModuleInterface {
 
 	public:
 

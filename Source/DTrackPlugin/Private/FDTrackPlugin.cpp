@@ -24,11 +24,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "DTrackPluginPrivatePCH.h"
-
-#include "IDTrackPlugin.h"
-#include "DTrackPollThread.h"
 #include "FDTrackPlugin.h"
+#include "DTrackPollThread.h"
 #include "Math/UnrealMathUtility.h"
 #include "DTrackSDK.hpp"
 
@@ -164,7 +161,7 @@ void FDTrackPlugin::tick(const float n_delta_time, const UDTrackComponent *n_com
 void FDTrackPlugin::inject_body_data(const int n_body_id, const FVector &n_translation, const FRotator &n_rotation) {
 
 	check(m_injected);
-	TArray<FBody> &body_inject = m_injected->m_body_data;
+	TArray<FDTrackBody> &body_inject = m_injected->m_body_data;
 
 	if (body_inject.Num() < (n_body_id + 1)) {
 		body_inject.SetNumZeroed(n_body_id + 1, false);
@@ -177,7 +174,7 @@ void FDTrackPlugin::inject_body_data(const int n_body_id, const FVector &n_trans
 void FDTrackPlugin::inject_flystick_data(const int n_flystick_id, const FVector &n_translation, const FRotator &n_rotation, const TArray<int> &n_button_state, const TArray<float> &n_joystick_state) {
 
 	check(m_injected);
-	TArray<FFlystick> &flystick_inject = m_injected->m_flystick_data;
+	TArray<FDTrackFlystick> &flystick_inject = m_injected->m_flystick_data;
 
 	if (flystick_inject.Num() < (n_flystick_id + 1)) {
 		flystick_inject.SetNumZeroed(n_flystick_id + 1, false);
@@ -189,10 +186,10 @@ void FDTrackPlugin::inject_flystick_data(const int n_flystick_id, const FVector 
 	flystick_inject[n_flystick_id].m_joystick_states = n_joystick_state;
 }
 
-void FDTrackPlugin::inject_hand_data(const int n_hand_id, const bool &n_right, const FVector &n_translation, const FRotator &n_rotation, const TArray<FDtrackFinger> &n_fingers) {
+void FDTrackPlugin::inject_hand_data(const int n_hand_id, const bool &n_right, const FVector &n_translation, const FRotator &n_rotation, const TArray<FDTrackFinger> &n_fingers) {
 
 	check(m_injected);
-	TArray<FDtrackHand> &hand_inject = m_injected->m_hand_data;
+	TArray<FDTrackHand> &hand_inject = m_injected->m_hand_data;
 
 	if (hand_inject.Num() < (n_hand_id + 1)) {
 		hand_inject.SetNumZeroed(n_hand_id + 1, false);
@@ -204,10 +201,10 @@ void FDTrackPlugin::inject_hand_data(const int n_hand_id, const bool &n_right, c
 	hand_inject[n_hand_id].m_fingers = n_fingers;
 }
 
-void FDTrackPlugin::inject_human_model_data(const int n_human_id, const TArray<FDtrackJoint> &n_joints) {
+void FDTrackPlugin::inject_human_model_data(const int n_human_id, const TArray<FDTrackJoint> &n_joints) {
 	
 	check(m_injected);
-	TArray<FHuman> &human_inject = m_injected->m_human_model_data;
+	TArray<FDTrackHuman> &human_inject = m_injected->m_human_model_data;
 
 	if (human_inject.Num() < (n_human_id + 1)) {
 		human_inject.SetNumZeroed(n_human_id + 1, false);
@@ -319,14 +316,14 @@ void FDTrackPlugin::handle_bodies(UDTrackComponent *n_component) {
 	FScopeLock lock(swapping_mutex());
 	for (int32 i = 0; i < m_front->m_body_data.Num(); i++) {
 
-		const FBody &current_body = m_front->m_body_data[i];
+		const FDTrackBody &current_body = m_front->m_body_data[i];
 
 		// This should occur only once while starting up
 		// No extrapolation with one data set
 		if (m_back->m_body_data.Num() != m_front->m_body_data.Num()) {
 			n_component->body_tracking(i, current_body.m_location, current_body.m_rotation);
 		} else {
-			const FBody &last_body = m_back->m_body_data[i];
+			const FDTrackBody &last_body = m_back->m_body_data[i];
 
 			FVector extrapolated_location;
 			extrapolate(extrapolated_location, last_body.m_location, current_body.m_location);
@@ -345,7 +342,7 @@ void FDTrackPlugin::handle_flysticks(UDTrackComponent *n_component) {
 	FScopeLock lock(swapping_mutex());
 	for (int32 i = 0; i < m_front->m_flystick_data.Num(); i++) {
 
-		FFlystick &current_flystick = m_front->m_flystick_data[i];
+		FDTrackFlystick &current_flystick = m_front->m_flystick_data[i];
 
 		// tracking first, it's always called
 		n_component->flystick_tracking(i, current_flystick.m_location, current_flystick.m_rotation);
@@ -387,7 +384,7 @@ void FDTrackPlugin::handle_hands(UDTrackComponent *n_component) {
 	// treat all tracked hands
 	FScopeLock lock(swapping_mutex());
 	for (int32 i = 0; i < m_front->m_hand_data.Num(); i++) {
-		const FDtrackHand &hand = m_front->m_hand_data[i];
+		const FDTrackHand &hand = m_front->m_hand_data[i];
 		n_component->hand_tracking(i, hand.m_right, hand.m_location, hand.m_rotation, hand.m_fingers);
 	}
 }
@@ -397,7 +394,7 @@ void FDTrackPlugin::handle_human_model(UDTrackComponent *n_component) {
 	FScopeLock lock(swapping_mutex());
 	// treat all tracked hands
 	for (int32 i = 0; i < m_front->m_human_model_data.Num(); i++) {
-		const FHuman &human = m_front->m_human_model_data[i];
+		const FDTrackHuman &human = m_front->m_human_model_data[i];
 		n_component->human_model(i, human.m_joints);
 	}
 }

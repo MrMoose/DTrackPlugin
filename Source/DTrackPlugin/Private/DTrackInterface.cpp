@@ -26,7 +26,6 @@
 
 #pragma once
 
-#include "DTrackPluginPrivatePCH.h"
 #include "DTrackInterface.h"
 
 UDTrackInterface::UDTrackInterface(const FObjectInitializer &n_initializer)

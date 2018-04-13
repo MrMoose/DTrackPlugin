@@ -24,7 +24,7 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "DTrackPluginPrivatePCH.h"
+#include "DTrackPollThread.h"
 
 // this makes UBT allow windows types as (probably) used by the SDK header
 // @todo check if this is indeed the case and remove if not needed
@@ -36,10 +36,7 @@
 #include "HideWindowsPlatformTypes.h"
 #include "Async.h"
 
-#include "DTrackPollThread.h"
-
 #define LOCTEXT_NAMESPACE "DTrackPlugin"
-
 
 FDTrackPollThread *FDTrackPollThread::m_runnable = nullptr;
 
@@ -260,17 +257,17 @@ void FDTrackPollThread::handle_hands() {
 		if (hand->quality > 0) {
 			FVector translation = from_dtrack_location(hand->loc);
 			FRotator rotation = from_dtrack_rotation(hand->rot);
-			TArray<FDtrackFinger> fingers;
+			TArray<FDTrackFinger> fingers;
 
 			for (int j = 0; j < hand->nfinger; j++) {
-				FDtrackFinger finger;
+				FDTrackFinger finger;
 				switch (j) {     // this is mostly to allow for the blueprint to be a 
 								 // little more expressive than using assumptions about the index' meaning
-					case 0: finger.m_type = EFingerType::FT_Thumb; break;
-					case 1: finger.m_type = EFingerType::FT_Index; break;
-					case 2: finger.m_type = EFingerType::FT_Middle; break;
-					case 3: finger.m_type = EFingerType::FT_Ring; break;
-					case 4: finger.m_type = EFingerType::FT_Pinky; break;
+					case 0: finger.m_type = EDTrackFingerType::FT_Thumb; break;
+					case 1: finger.m_type = EDTrackFingerType::FT_Index; break;
+					case 2: finger.m_type = EDTrackFingerType::FT_Middle; break;
+					case 3: finger.m_type = EDTrackFingerType::FT_Ring; break;
+					case 4: finger.m_type = EDTrackFingerType::FT_Pinky; break;
 				}
 
 				finger.m_location = from_dtrack_location(hand->finger[j].loc);
@@ -297,10 +294,10 @@ void FDTrackPollThread::handle_human_model() {
 		human = m_dtrack->getHuman(i);
 		checkf(human, TEXT("DTrack API error, human address is null"));
 
-		TArray<FDtrackJoint> joints;
+		TArray<FDTrackJoint> joints;
 
 		for (int j = 0; j < human->num_joints; j++) {
-			FDtrackJoint joint;
+			FDTrackJoint joint;
 			// I'm not sure if I should check for quality as I don't know if the caller
 			// would expect number and order of joints to be relevant/constant.
 			// They do carry an ID though so I suppose the caller must be aware of that.
@@ -329,17 +326,17 @@ FVector FDTrackPollThread::from_dtrack_location(const double(&n_translation)[3])
 	// I translate to Unreal's Z being up and cm units.
 	switch (m_coordinate_system) {
 		default:
-		case ECoordinateSystemType::CST_Normal:
+		case EDTrackCoordinateSystemType::CST_Normal:
 			ret.X = n_translation[1] / 10.0;
 			ret.Y = n_translation[0] / 10.0;
 			ret.Z = n_translation[2] / 10.0;
 			break;
-		case ECoordinateSystemType::CST_Unreal_Adapted:
+		case EDTrackCoordinateSystemType::CST_Unreal_Adapted:
 			ret.X = n_translation[0] / 10.0;
 			ret.Y = -n_translation[1] / 10.0;
 			ret.Z = n_translation[2] / 10.0;
 			break;
-		case ECoordinateSystemType::CST_Powerwall:
+		case EDTrackCoordinateSystemType::CST_Powerwall:
 			ret.X = -n_translation[2] / 10.0;
 			ret.Y = n_translation[0] / 10.0;
 			ret.Z = n_translation[1] / 10.0;
@@ -364,15 +361,15 @@ FRotator FDTrackPollThread::from_dtrack_rotation(const double(&n_matrix)[9]) {
 
 	switch (m_coordinate_system) {
 		default:
-		case ECoordinateSystemType::CST_Normal:
+		case EDTrackCoordinateSystemType::CST_Normal:
 			r_adapted = m_trafo_normal * r * m_trafo_normal_transposed;
 			break;
 
-		case ECoordinateSystemType::CST_Unreal_Adapted:
+		case EDTrackCoordinateSystemType::CST_Unreal_Adapted:
 			r_adapted = m_trafo_unreal_adapted * r * m_trafo_unreal_adapted_transposed;
 			break;
 
-		case ECoordinateSystemType::CST_Powerwall:
+		case EDTrackCoordinateSystemType::CST_Powerwall:
 			r_adapted = m_trafo_powerwall * r * m_trafo_powerwall_transposed;
 			break;
 	}
