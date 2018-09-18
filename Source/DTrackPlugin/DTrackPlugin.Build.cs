@@ -41,12 +41,12 @@ namespace UnrealBuildTool.Rules
 			PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 			PrivatePCHHeaderFile = "Private/DTrackPluginPrivatePCH.h";
 
-			PublicIncludePaths.AddRange(
-				new string[] {
-                    "DTrackPlugin/Public",
-					// ... add public include paths required here ...
-				}
-				);
+		//	PublicIncludePaths.AddRange(
+		//		new string[] {
+        //           "DTrackPlugin/Public",
+		//			// ... add public include paths required here ...
+		//		}
+		//		);
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
