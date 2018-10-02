@@ -38,15 +38,9 @@ namespace UnrealBuildTool.Rules
 
 		public DTrackPlugin(ReadOnlyTargetRules Target) : base(Target)
 		{
+			bPrecompile = true;
 			PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-			PrivatePCHHeaderFile = "Private/DTrackPluginPrivatePCH.h";
-
-		//	PublicIncludePaths.AddRange(
-		//		new string[] {
-        //           "DTrackPlugin/Public",
-		//			// ... add public include paths required here ...
-		//		}
-		//		);
+// 			PrivatePCHHeaderFile = "Private/DTrackPluginPrivatePCH.h";
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
@@ -57,8 +51,7 @@ namespace UnrealBuildTool.Rules
 				);
 
 			PublicDependencyModuleNames.AddRange(
-				new string[]
-				{
+				new string[] {
 					"Core",
 					"CoreUObject",
                     "Engine",
