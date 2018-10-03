@@ -39,8 +39,8 @@ namespace UnrealBuildTool.Rules
 		public DTrackPlugin(ReadOnlyTargetRules Target) : base(Target)
 		{
 			bPrecompile = true;
+			PrivatePCHHeaderFile = "Private/DTrackPluginPrivatePCH.h";
 			PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-// 			PrivatePCHHeaderFile = "Private/DTrackPluginPrivatePCH.h";
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
